@@ -14,4 +14,5 @@ public class Asset
     public virtual Purchase? Purchase { get; set; }
     public int? MediaId { get; set; }
     public virtual Media? Media { get; set; }
+    public DateTimeOffset? PrintDate { get; set; }
 }

@@ -1,0 +1,45 @@
+﻿@page "/Asset/Print"
+
+<h2>Print Assets</h2>
+
+<h3>Options</h3>
+<EditForm Model="_pageModel" OnSubmit="Generate">
+    <fieldset disabled="@_isWorking">
+    <div class="row">
+        <div class="col-4">
+            <h4>Limits</h4>
+            <div class="form-check">
+                <InputCheckbox @bind-Value="_pageModel.PrintOnlyNew" id="optionPrintNewOnly" />
+                <label for="optionPrintNewOnly">Print only new</label>
+            </div>
+        </div>
+        <div class="col-4">
+            <h4>Sources</h4>
+            <InputRadioGroup @bind-Value="_pageModel.PrintSource">
+                <div class="form-check">
+                    <InputRadio Value="PrintSource.All" id="radioSourceAll" />
+                    <label for="radioSourceAll">All</label>
+                </div>
+                <div class="form-check">
+                    <InputRadio Value="PrintSource.Devices" id="radioSourceDevice" />
+                    <label for="radioSourceDevice">Device</label>
+                </div>
+                <div class="form-check">
+                    <InputRadio Value="PrintSource.Media" id="radioSourceMedia" />
+                    <label for="radioSourceMedia">Media</label>
+                </div>
+            </InputRadioGroup>
+        </div>
+        <div class="row">
+            <div class="col">
+                <button type="submit" class="btn btn-primary float-end mb-3">Generate</button>
+            </div>
+        </div>
+    </div>
+    </fieldset>
+</EditForm>
+<div class="row">
+    <div class="col">
+        <textarea readonly @bind="@_output" class="form-control"></textarea>
+    </div>
+</div>
