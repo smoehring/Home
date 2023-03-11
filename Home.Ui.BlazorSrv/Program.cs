@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 using Serilog;
 using Smoehring.Home.Data.SqlDatabase;
 
@@ -13,14 +16,22 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, provider, logger) =>
 {
     logger
-        .WriteTo.Console()
-        .Enrich.FromLogContext()
-        .Enrich.WithEnvironmentName()
-        .Enrich.WithEnvironmentUserName()
-        .Enrich.WithMachineName()
         .ReadFrom.Services(provider)
         .ReadFrom.Configuration(context.Configuration);
 });
+
+// Add services to the container.
+builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));
+builder.Services.AddControllersWithViews()
+    .AddMicrosoftIdentityUI();
+
+builder.Services.AddAuthorization(options =>
+{
+    // By default, all incoming requests will be authorized according to the default policy
+    options.FallbackPolicy = options.DefaultPolicy;
+});
+
 builder.Services.AddDbContextFactory<DatabaseContext>(optionsBuilder =>
 {
     optionsBuilder.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
@@ -34,9 +45,12 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<DatabaseContext>("Sql Server", HealthStatus.Unhealthy);
 
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder.Services.AddServerSideBlazor()
+    .AddMicrosoftIdentityConsentHandler();
 
 var app = builder.Build();
+
+app.MigrateDatabase<DatabaseContext>();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -49,6 +63,9 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseHealthChecks("/health", new HealthCheckOptions()
 {

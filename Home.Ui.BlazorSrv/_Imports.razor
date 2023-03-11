@@ -1,8 +1,11 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
 @using Smoehring.Home.Ui.BlazorSrv
 @using Smoehring.Home.Data.SqlDatabase;
 @using Smoehring.Home.Data.SqlDatabase.Models;
 @using Smoehring.Home.Ui.BlazorSrv.Shared;
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]

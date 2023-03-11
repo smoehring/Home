@@ -10,6 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="7.0.3" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="1.25.10" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="1.25.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.3">
       <PrivateAssets>all</PrivateAssets>
@@ -39,7 +42,6 @@
 
   <ItemGroup>
     <Folder Include="Const\" />
-    <Folder Include="Shared\Bootstrap\" />
   </ItemGroup>
 
 </Project>

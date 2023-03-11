@@ -1,0 +1,10 @@
+﻿<AuthorizeView>
+    <Authorized>
+        <span class="navbar-text text-muted">@context.User.Identity?.Name</span>
+    </Authorized>
+    <NotAuthorized>
+        <li class="nav-item">
+            <span class="navbar-text text-danger">Not logged in.</span>
+        </li>
+    </NotAuthorized>
+</AuthorizeView>
