@@ -47,6 +47,7 @@ builder.Services.AddHealthChecks()
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor()
     .AddMicrosoftIdentityConsentHandler();
+builder.Services.AddApplicationInsightsTelemetry();
 
 var app = builder.Build();
 
