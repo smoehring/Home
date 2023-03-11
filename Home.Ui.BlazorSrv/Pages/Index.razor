@@ -1,0 +1,26 @@
+﻿@page "/"
+
+<div class="row justify-content-center">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Assets</th>
+            <th>Recipes</th>
+            <th>Artworks</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>
+                <h3>@(_values == null ? "-" : _values[nameof(Asset)])</h3>
+            </td>
+            <td>
+                <h3>-</h3>
+            </td>
+            <td>
+                <h3>-</h3>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>

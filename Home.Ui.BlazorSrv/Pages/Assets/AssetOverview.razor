@@ -1,0 +1,54 @@
+﻿@page "/Asset"
+
+<div class="row">
+    <div>
+        <button class="btn btn-primary float-end" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/New")'><i class="bi bi-file-plus"></i>New</button>
+    </div>
+    <table class="table">
+        <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @if (_assets is null)
+        {
+            <tr>
+                <td>
+                    <div class="spinner-border-sm text-primary"><span class="visually-hidden">Loading...</span></div></td>
+            </tr>
+        }
+        else
+        {
+            if (!_assets.Any())
+            {
+                <tr>
+                    <td colspan="3"><em>Nothing to show.</em></td>
+                </tr>
+            }
+            else
+            {
+                foreach (var asset in _assets)
+                {
+                    <td>
+                        @if (asset.MediaId is not null)
+                        {<i class="bi bi-disc"></i>}
+                        @if (asset.DeviceId is not null)
+                        {<i class="bi bi-projector"></i>}
+                        @if (asset.PurchaseId is not null)
+                        {<i class="bi bi-currency-euro"></i>}
+                    </td>
+                    <td>
+                        @asset.Name
+                    </td>
+                    <td>
+                        <a href="@($"/Asset/{asset.Id}")">Show</a>
+                    </td>
+                }
+            }
+        }
+        </tbody>
+    </table>
+</div>
