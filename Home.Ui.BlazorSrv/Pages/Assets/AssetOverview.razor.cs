@@ -19,7 +19,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
             await using var context = await DbContextFactory.CreateDbContextAsync();
             context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
 
-            _assets = await context.Assets.ToListAsync();
+            _assets = await context.Assets.Include(asset => asset.Brand).Include(asset => asset.AssetType).ToListAsync();
         }
 
         #endregion

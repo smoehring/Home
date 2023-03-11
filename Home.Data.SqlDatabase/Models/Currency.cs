@@ -8,4 +8,5 @@ public class Currency
     public string Symbol { get; set; }
     public int? LanguageId { get; set; }
     public virtual Language? Language { get; set; }
+    public virtual ICollection<Purchase> Purchases { get; set; }
 }

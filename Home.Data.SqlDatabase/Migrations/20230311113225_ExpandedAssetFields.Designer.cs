@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Smoehring.Home.Data.SqlDatabase;
 
@@ -11,9 +12,11 @@ using Smoehring.Home.Data.SqlDatabase;
 namespace Smoehring.Home.Data.SqlDatabase.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20230311113225_ExpandedAssetFields")]
+    partial class ExpandedAssetFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -286,17 +289,27 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("GroupId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("GroupOrder")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
+
+                    b.ToTable("Mediae");
+                });
+
+            modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.Media2MediaGroup", b =>
+                {
+                    b.Property<int>("MediaId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.HasKey("MediaId", "GroupId");
 
                     b.HasIndex("GroupId");
 
-                    b.ToTable("Mediae");
+                    b.ToTable("Media2MediaGroup");
                 });
 
             modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.MediaGroup", b =>
@@ -394,20 +407,29 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
                     b.Navigation("Language");
                 });
 
-            modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.Media", b =>
+            modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.Media2MediaGroup", b =>
                 {
                     b.HasOne("Smoehring.Home.Data.SqlDatabase.Models.MediaGroup", "Group")
                         .WithMany("Mediae")
                         .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Smoehring.Home.Data.SqlDatabase.Models.Media", "Media")
+                        .WithMany("Groups")
+                        .HasForeignKey("MediaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Group");
+
+                    b.Navigation("Media");
                 });
 
             modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.Purchase", b =>
                 {
                     b.HasOne("Smoehring.Home.Data.SqlDatabase.Models.Currency", "Currency")
-                        .WithMany("Purchases")
+                        .WithMany()
                         .HasForeignKey("CurrencyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -425,11 +447,6 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
                     b.Navigation("Assets");
                 });
 
-            modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.Currency", b =>
-                {
-                    b.Navigation("Purchases");
-                });
-
             modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.Device", b =>
                 {
                     b.Navigation("Asset")
@@ -445,6 +462,8 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
                 {
                     b.Navigation("Asset")
                         .IsRequired();
+
+                    b.Navigation("Groups");
                 });
 
             modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.MediaGroup", b =>

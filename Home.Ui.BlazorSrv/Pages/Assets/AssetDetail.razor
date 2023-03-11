@@ -1,0 +1,163 @@
+﻿@page "/Asset/{Uuid:guid?}"
+@page "/Asset/New"
+@using Smoehring.Home.Ui.BlazorSrv.Const
+
+<EditForm EditContext="_editContext" OnSubmit="EditForm_OnSubmit">
+    <fieldset disabled="@_isWorking">
+        <div class="row">
+            <h3>Asset:</h3>
+            <div class="col-2">
+                <label for="inputId" class="form-label">Id</label>
+                <input class="form-control mb-3" @bind="_currentAsset.Id" disabled id="inputId"/>
+            </div>
+            <div class="col-4">
+                <label for="inputUuid" class="form-label">Uuid</label>
+                <input class="form-control mb-3" @bind="_currentAsset.Uuid" disabled id="inputUuid"/>
+            </div>
+            <div class="col-4">
+                <label for="inputCreation" class="form-label">Creation Timestamp</label>
+                <input class="form-control mb-3" @bind="_currentAsset.Creation" disabled id="inputCreation"/>
+            </div>
+            <div class="col-2">
+                @switch (_mode)
+                {
+                    case AssetDetailMode.Show:
+                        <i class="bi bi-eye text-primary float-end h4">Display</i>
+                        break;
+                    case AssetDetailMode.Edit:
+                        <i class="bi bi-pencil text-danger float-end h4">Editing</i>
+                        break;
+                    case AssetDetailMode.Create:
+                        <i class="bi bi-file-plus text-success float-end h4">Creation</i>
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <label for="inputAssetName" class="form-label">Name</label>
+                <InputText @bind-Value="_currentAsset.Name" class="form-control mb-3" id="inputAssetName"/>
+            </div>
+            <div class="col-6">
+                <label for="inputAssetBrand" class="form-label">Brand</label>
+                <InputText @bind-Value="_currentBrand" class="form-control mb-3" id="inputAssetBrand" list="suggestionBrand"/>
+                <datalist id="suggestionBrand">
+                    @if (_brandSuggestions != null)
+                    {
+                        foreach (var brand in _brandSuggestions)
+                        {
+                            <option value="@brand.Name"/>
+                        }
+                    }
+                </datalist>
+            </div>
+            <div class="col-6">
+                <label for="inputAssetType" class="form-label">Type</label>
+                <InputText @bind-Value="_currentAssetType" class="form-control mb-3" id="inputAssetType" list="suggestionType"/>
+                <datalist id="suggestionType">
+                    @if (_assetTypeSuggestions != null)
+                    {
+                        foreach (var type in _assetTypeSuggestions)
+                        {
+                            <option value="@type.Name"/>
+                        }
+                    }
+                </datalist>
+            </div>
+        </div>
+        <div class="row">
+            @if (_currentAsset.Device != null)
+            {
+                <h4>Device Information</h4>
+                <div class="col-6">
+                    <label for="inputDeviceSerial" class="form-label">Serial-Number</label>
+                    <InputText @bind-Value="_currentAsset.Device.SerialNumber" class="form-control mb-3" id="inputDeviceSerial"/>
+                </div>
+                <div class="col-6">
+                    <label for="inputDeviceModel" class="form-label">Model-Number</label>
+                    <InputText @bind-Value="_currentAsset.Device.ModelNumber" class="form-control mb-3" id="inputDeviceModel"/>
+                </div>
+                <div class="col-12">
+                    <label for="inputDeviceDescr" class="form-label">Description</label>
+                    <InputTextArea @bind-Value="_currentAsset.Device.Description" class="form-control mb-3" id="inputDeviceDescr"/>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-danger float-end mb-3" @onclick="RemoveDeviceInformation_OnClick">Remove Device Information</button>
+                </div>
+            }
+            else
+            {
+                <div class="col-12">
+                    <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddDeviceInformation_OnCLick">Add Device Information</button>
+                </div>
+            }
+        </div>
+        <div class="row">
+            @if (_currentAsset.Purchase != null)
+            {
+                <h4>Purchase Information</h4>
+                <div class="col-4">
+                    <label for="inputPurchaseAmount" class="form-label">Amount</label>
+                    <InputNumber @bind-Value="_currentAsset.Purchase.Amount" id="inputPurchaseAmount" class="form-control mb-3" />
+                </div>
+                <div class="col-4">
+                    <label for="inputPurchaseCurrency" class="form-label">Currency</label>
+                    <InputSelect @bind-Value="_currentAsset.Purchase.CurrencyId" id="inputPurchaseCurrency" class="form-control mb-3">
+                        @foreach (var currency in _currencies)
+                        {
+                            <option value="@currency.Id">@currency.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-4">
+                    <label for="inputPurchaseTime" class="form-label">Date</label>
+                    <InputDate @bind-Value="_currentAsset.Purchase.PurchaseTime" Type="InputDateType.Date" id="inputPurchaseTime" class="form-control mb-3" />
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-danger float-end mb-3" @onclick="RemovePurchaseInformation_OnCLick">Remove Purchase Information</button>
+                </div>
+            }
+            else
+            {
+                <div class="col-12">
+                    <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddPurchaseInformation_OnCLick">Add Purchase Information</button>
+                </div>
+            }
+        </div>
+        <div class="row">
+            @if (_currentAsset.Media != null)
+            {
+                <div class="col-9">
+                    <label for="inputMediaGroupName" class="form-label">Group</label>
+                    <InputText @bind-Value="_currentMediaGroup" class="form-control mb-3" id="inputMediaGroupName" list="suggestionMediaGroup"/>
+                    <datalist id="suggestionMediaGroup">
+                        @if (_mediaGroups != null)
+                        {
+                            foreach (var group in _mediaGroups)
+                            {
+                                <option value="@group.Name" />
+                            }
+                        }
+                    </datalist>
+                </div>
+                <div class="col-3">
+                    <label for="inputMediaGroupOrder" class="form-label">Order</label>
+                    <InputNumber @bind-Value="_currentAsset.Media.GroupOrder" class="form-control mb-3" id="inputMediaGroupOrder"/>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-danger float-end mb-3" @onclick="RemoveMediaInformation_OnCLick">Remove Media Information</button>
+                </div>
+            }
+            else
+            {
+                <div class="col-12">
+                    <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddMediaInformation_OnCLick">Add Media Information</button>
+                </div>
+            }
+        </div>
+        <button type="submit" class="btn btn-primary float-end">Save</button>
+        <button type="button" class="btn btn-secondary float-end me-3" disabled="@(_mode == AssetDetailMode.Create)" @onclick="CreateNew">New</button>
+    </fieldset>
+</EditForm>

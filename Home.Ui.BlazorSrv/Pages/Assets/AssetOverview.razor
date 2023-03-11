@@ -8,7 +8,9 @@
         <thead>
         <tr>
             <th></th>
+            <th>Brand</th>
             <th>Name</th>
+            <th>Type</th>
             <th></th>
         </tr>
         </thead>
@@ -17,7 +19,10 @@
         {
             <tr>
                 <td>
-                    <div class="spinner-border-sm text-primary"><span class="visually-hidden">Loading...</span></div></td>
+                    <div class="spinner-border-sm text-primary">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </td>
             </tr>
         }
         else
@@ -25,27 +30,33 @@
             if (!_assets.Any())
             {
                 <tr>
-                    <td colspan="3"><em>Nothing to show.</em></td>
+                    <td colspan="3">
+                        <em>Nothing to show.</em>
+                    </td>
                 </tr>
             }
             else
             {
                 foreach (var asset in _assets)
                 {
-                    <td>
-                        @if (asset.MediaId is not null)
-                        {<i class="bi bi-disc"></i>}
-                        @if (asset.DeviceId is not null)
-                        {<i class="bi bi-projector"></i>}
-                        @if (asset.PurchaseId is not null)
-                        {<i class="bi bi-currency-euro"></i>}
-                    </td>
-                    <td>
-                        @asset.Name
-                    </td>
-                    <td>
-                        <a href="@($"/Asset/{asset.Id}")">Show</a>
-                    </td>
+                    <tr>
+                        <td>
+                            @if (asset.MediaId is not null)
+                            {<i class="bi bi-disc"></i>}
+                            @if (asset.DeviceId is not null)
+                            {<i class="bi bi-projector"></i>}
+                            @if (asset.PurchaseId is not null)
+                            {<i class="bi bi-currency-euro"></i>}
+                        </td>
+                        <td>@asset.Brand?.Name</td>
+                        <td>
+                            @asset.Name
+                        </td>
+                        <td>@asset.AssetType?.Name</td>
+                        <td>
+                            <a href="@($"/Asset/{asset.Uuid:N}")">Show</a>
+                        </td>
+                    </tr>
                 }
             }
         }

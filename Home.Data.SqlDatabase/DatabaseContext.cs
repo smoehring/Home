@@ -15,6 +15,10 @@ namespace Smoehring.Home.Data.SqlDatabase
         public DbSet<Purchase> Purchases { get; set; }
         public DbSet<Media> Mediae { get; set; }
         public DbSet<MediaGroup> MediaGroups { get; set; }
+        public DbSet<Currency> Currencies { get; set; }
+        public DbSet<Language> Languages { get; set; }
+        public DbSet<Brand> Brands { get; set; }
+        public DbSet<AssetType> AssetTypes { get; set; }
 
         #region Overrides of DbContext
 
@@ -34,23 +38,23 @@ namespace Smoehring.Home.Data.SqlDatabase
                 builder.HasAlternateKey(asset => asset.Uuid);
                 builder.Property(asset => asset.Uuid).HasDefaultValueSql("(NewId())");
                 builder.Property(asset => asset.Creation).HasDefaultValueSql("(GetDate())");
+                builder.HasOne<AssetType>(asset => asset.AssetType).WithMany(type => type.Assets)
+                    .OnDelete(DeleteBehavior.Restrict);
+                builder.HasOne<Brand>(asset => asset.Brand).WithMany(brand => brand.Assets)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Media>(builder =>
             {
-                builder.HasMany<Media2MediaGroup>(media => media.Groups).WithOne(group => group.Media).HasForeignKey(group => group.MediaId).OnDelete(DeleteBehavior.Restrict);
+                builder.HasOne<MediaGroup>(media => media.Group).WithMany(group => group.Mediae).OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<MediaGroup>(builder =>
             {
-                builder.HasMany<Media2MediaGroup>(group => group.Mediae).WithOne(group => group.Group).HasForeignKey(group => group.GroupId).OnDelete(DeleteBehavior.Cascade);
                 builder.HasIndex(group => group.Name).IsUnique();
             });
 
-            modelBuilder.Entity<MediaType>(builder => builder.HasIndex(type => type.Name).IsUnique());
-
-            modelBuilder.Entity<Media2MediaGroup>(builder =>
-                builder.HasKey(group => new { group.MediaId, group.GroupId }));
+            modelBuilder.Entity<AssetType>(builder => builder.HasIndex(type => type.Name).IsUnique());
 
             modelBuilder.Entity<Language>(builder =>
             {
@@ -86,6 +90,8 @@ namespace Smoehring.Home.Data.SqlDatabase
             {
                 builder.Property(purchase => purchase.Amount).HasPrecision(18, 2);
                 builder.Property(purchase => purchase.PurchaseTime).HasDefaultValueSql("(GetDate())");
+                builder.HasOne<Currency>(purchase => purchase.Currency).WithMany(currency => currency.Purchases)
+                    .HasForeignKey(purchase => purchase.CurrencyId);
             });
         }
 

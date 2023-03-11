@@ -29,4 +29,17 @@
     <ProjectReference Include="..\Home.Data.SqlDatabase\Home.Data.SqlDatabase.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Pages\Assets\AssetDetail.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Pages\Assets\AssetDetail.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Const\" />
+    <Folder Include="Shared\Bootstrap\" />
+  </ItemGroup>
+
 </Project>
