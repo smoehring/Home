@@ -46,11 +46,14 @@ namespace Smoehring.Home.Data.SqlDatabase
                 builder.HasOne<AssetState>(asset => asset.AssetState).WithMany(state => state.Assets)
                     .OnDelete(DeleteBehavior.Restrict).HasForeignKey(asset => asset.AssetStateId);
                 builder.Property(asset => asset.AssetStateId).HasDefaultValue(1);
+                builder.HasIndex(asset => asset.Name);
             });
 
             modelBuilder.Entity<Media>(builder =>
             {
                 builder.HasOne<MediaGroup>(media => media.Group).WithMany(group => group.Mediae).OnDelete(DeleteBehavior.Restrict);
+                builder.HasMany<MediaName>(media => media.MediaNames).WithOne(name => name.Media)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<MediaGroup>(builder =>
@@ -115,6 +118,12 @@ namespace Smoehring.Home.Data.SqlDatabase
                     new AssetState()
                         { Id = 6, Name = "Borrowed", IsDefault = false, Ownership = false, Possession = true },
                 });
+            });
+
+            modelBuilder.Entity<MediaName>(builder =>
+            {
+                builder.HasOne<Language>(name => name.Language).WithMany(language => language.MediaNames).OnDelete(DeleteBehavior.Restrict);
+                builder.HasIndex(name => name.Name);
             });
         }
 

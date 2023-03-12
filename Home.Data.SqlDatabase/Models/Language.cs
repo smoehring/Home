@@ -13,5 +13,6 @@ namespace Smoehring.Home.Data.SqlDatabase.Models
         public string DisplayName { get; set; }
 
         public virtual ICollection<Currency> Currencies { get; set; }
+        public virtual ICollection<MediaName> MediaNames { get; set; }
     }
 }

@@ -6,4 +6,6 @@ public class Media
     public Asset Asset { get; set; }
     public virtual MediaGroup? Group { get; set; }
     public int? GroupOrder { get; set; }
+
+    public virtual ICollection<MediaName>? MediaNames { get; set; }
 }
