@@ -19,6 +19,7 @@ namespace Smoehring.Home.Data.SqlDatabase
         public DbSet<Language> Languages { get; set; }
         public DbSet<Brand> Brands { get; set; }
         public DbSet<AssetType> AssetTypes { get; set; }
+        public DbSet<AssetState> AssetStates { get; set; }
 
         #region Overrides of DbContext
 
@@ -42,6 +43,9 @@ namespace Smoehring.Home.Data.SqlDatabase
                     .OnDelete(DeleteBehavior.Restrict);
                 builder.HasOne<Brand>(asset => asset.Brand).WithMany(brand => brand.Assets)
                     .OnDelete(DeleteBehavior.Restrict);
+                builder.HasOne<AssetState>(asset => asset.AssetState).WithMany(state => state.Assets)
+                    .OnDelete(DeleteBehavior.Restrict).HasForeignKey(asset => asset.AssetStateId);
+                builder.Property(asset => asset.AssetStateId).HasDefaultValue(1);
             });
 
             modelBuilder.Entity<Media>(builder =>
@@ -92,6 +96,25 @@ namespace Smoehring.Home.Data.SqlDatabase
                 builder.Property(purchase => purchase.PurchaseTime).HasDefaultValueSql("(GetDate())");
                 builder.HasOne<Currency>(purchase => purchase.Currency).WithMany(currency => currency.Purchases)
                     .HasForeignKey(purchase => purchase.CurrencyId);
+            });
+
+            modelBuilder.Entity<AssetState>(builder =>
+            {
+                builder.HasData(new AssetState[]
+                {
+                    new AssetState()
+                        { Id = 1, Name = "Available", IsDefault = true, Ownership = true, Possession = true },
+                    new AssetState()
+                        { Id = 2, Name = "Lost", IsDefault = false, Ownership = false, Possession = false },
+                    new AssetState()
+                        { Id = 3, Name = "Stolen", IsDefault = false, Ownership = false, Possession = false },
+                    new AssetState()
+                        { Id = 4, Name = "Broken", IsDefault = false, Ownership = false, Possession = false },
+                    new AssetState()
+                        { Id = 5, Name = "Loaned", IsDefault = false, Ownership = true, Possession = false },
+                    new AssetState()
+                        { Id = 6, Name = "Borrowed", IsDefault = false, Ownership = false, Possession = true },
+                });
             });
         }
 

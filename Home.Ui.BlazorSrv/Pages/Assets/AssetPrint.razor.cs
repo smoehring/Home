@@ -4,16 +4,19 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Smoehring.Home.Data.SqlDatabase;
 using Smoehring.Home.Data.SqlDatabase.Models;
+using Smoehring.Home.Ui.BlazorSrv.Data;
 
 namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
 {
     public partial class AssetPrint : ComponentBase
     {
         [Inject] public IDbContextFactory<DatabaseContext> DbContextFactory { get; set; }
+        [Inject] public UserCacheService UserCache { get; set; }
 
         private readonly AssetPrintPageModel _pageModel = new AssetPrintPageModel();
         private string _output = string.Empty;
         private bool _isWorking;
+        private bool _hasSelectedAssets => UserCache.SelectedAssetIds.Any();
 
         private async Task Generate(EditContext obj)
         {
@@ -101,12 +104,18 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
                 query = query.Where(asset => asset.PrintDate == null);
             }
 
+            if (_pageModel.PrintOnlySelected)
+            {
+                query = query.Where(asset => UserCache.SelectedAssetIds.Contains(asset.Id));
+            }
+
             return await query.ToListAsync();
         }
 
         private class AssetPrintPageModel
         {
             public bool PrintOnlyNew { get; set; }
+            public bool PrintOnlySelected { get; set; }
 
             public PrintSource PrintSource { get; set; }
         }

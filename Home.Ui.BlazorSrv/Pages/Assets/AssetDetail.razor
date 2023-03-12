@@ -36,9 +36,18 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-12">
+            <div class="col-9">
                 <label for="inputAssetName" class="form-label">Name</label>
                 <InputText @bind-Value="_currentAsset.Name" class="form-control mb-3" id="inputAssetName"/>
+            </div>
+            <div class="col-3">
+                <label for="inputAssetState" class="form-label">State</label>
+                <InputSelect @bind-Value="_currentAsset.AssetStateId" class="form-select">
+                    @foreach (var state in _assetStates)
+                    {
+                        <option value="@state.Id">@state.Name</option>
+                    }
+                </InputSelect>
             </div>
             <div class="col-6">
                 <label for="inputAssetBrand" class="form-label">Brand</label>

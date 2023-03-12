@@ -6,6 +6,7 @@ using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using Serilog;
 using Smoehring.Home.Data.SqlDatabase;
+using Smoehring.Home.Ui.BlazorSrv.Data;
 
 Log.Logger = new LoggerConfiguration()
     .CreateBootstrapLogger();
@@ -40,6 +41,8 @@ builder.Services.AddDbContextFactory<DatabaseContext>(optionsBuilder =>
     optionsBuilder.EnableDetailedErrors();
     optionsBuilder.EnableSensitiveDataLogging();
 });
+
+builder.Services.AddScoped<UserCacheService>();
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<DatabaseContext>("Sql Server", HealthStatus.Unhealthy);

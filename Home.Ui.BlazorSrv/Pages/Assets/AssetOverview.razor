@@ -1,68 +1,70 @@
 ﻿@page "/Asset"
 
 <div class="row">
-<div class="col">
-    <div>
-        <button class="btn btn-primary float-end" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/New")'><i class="bi bi-file-plus"></i>New</button>
-        <button class="btn btn-secondary float-end me-3" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/Print")'><i class="bi bi-printer"></i>Print</button>
-    </div>
-    <table class="table">
-        <thead>
-        <tr>
-            <th></th>
-            <th>Brand</th>
-            <th>Name</th>
-            <th>Type</th>
-            <th></th>
-        </tr>
-        </thead>
-        <tbody>
-        @if (_assets is null)
+    <div class="col">
+        <div>
+            <button class="btn btn-primary float-end" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/New")'><i class="bi bi-file-plus"></i>New</button>
+            <button class="btn btn-secondary float-end me-3" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/Print")'><i class="bi bi-printer"></i>Print</button>
+        </div>
+        @if (_assets != null)
         {
-            <tr>
-                <td>
-                    <div class="spinner-border-sm text-primary">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </td>
-            </tr>
+            <EditForm EditContext="_editContext">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th>Brand</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @if (!_assets.Any())
+                    {
+                        <tr>
+                            <td colspan="3">
+                                <em>Nothing to show.</em>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var asset in _assets)
+                        {
+                            <tr>
+                                <td>
+                                    @if (asset.MediaId is not null)
+                                    {<i class="bi bi-disc"></i>}
+                                    @if (asset.DeviceId is not null)
+                                    {<i class="bi bi-projector"></i>}
+                                    @if (asset.PurchaseId is not null)
+                                    {<i class="bi bi-currency-euro"></i>}
+                                </td>
+                                <td>
+                                    <InputCheckbox @bind-Value="asset.IsSelected" class="form-check-input"/>
+                                </td>
+                                <td>@asset.Brand?.Name</td>
+                                <td>
+                                    @asset.Name
+                                </td>
+                                <td>@asset.AssetType?.Name</td>
+                                <td>
+                                    <a href="@($"/Asset/{asset.Uuid:N}")">Show</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </EditForm>
         }
         else
         {
-            if (!_assets.Any())
-            {
-                <tr>
-                    <td colspan="3">
-                        <em>Nothing to show.</em>
-                    </td>
-                </tr>
-            }
-            else
-            {
-                foreach (var asset in _assets)
-                {
-                    <tr>
-                        <td>
-                            @if (asset.MediaId is not null)
-                            {<i class="bi bi-disc"></i>}
-                            @if (asset.DeviceId is not null)
-                            {<i class="bi bi-projector"></i>}
-                            @if (asset.PurchaseId is not null)
-                            {<i class="bi bi-currency-euro"></i>}
-                        </td>
-                        <td>@asset.Brand?.Name</td>
-                        <td>
-                            @asset.Name
-                        </td>
-                        <td>@asset.AssetType?.Name</td>
-                        <td>
-                            <a href="@($"/Asset/{asset.Uuid:N}")">Show</a>
-                        </td>
-                    </tr>
-                }
-            }
+            <div class="spinner-border-sm text-primary">
+                <span class="visually-hidden">Loading...</span>
+            </div>
         }
-        </tbody>
-    </table>
-</div>
+    </div>
 </div>

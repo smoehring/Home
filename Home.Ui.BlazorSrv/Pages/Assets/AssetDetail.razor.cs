@@ -21,6 +21,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         private IReadOnlyList<Brand>? _brandSuggestions;
         private IReadOnlyList<AssetType>? _assetTypeSuggestions;
         private IReadOnlyList<MediaGroup>? _mediaGroups;
+        private IReadOnlyList<AssetState> _assetStates;
         private string _currentBrand = string.Empty;
         private string _currentAssetType = string.Empty;
         private string _currentMediaGroup = string.Empty;
@@ -34,6 +35,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         {
             _context = DbContextFactory.CreateDbContext();
             _currencies = _context.Currencies.ToList();
+            _assetStates = _context.AssetStates.ToList();
         }
 
         /// <inheritdoc />
@@ -55,6 +57,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
                     .ThenInclude(group => group.Group)
                     .Include(asset => asset.Device)
                     .Include(asset => asset.Purchase)
+                    .Include(asset => asset.AssetState)
                     .FirstOrDefault(asset => asset.Uuid.Equals(Uuid));
 
                 _mode = AssetDetailMode.Edit;

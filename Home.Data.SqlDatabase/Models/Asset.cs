@@ -1,6 +1,6 @@
 ﻿namespace Smoehring.Home.Data.SqlDatabase.Models;
 
-public class Asset
+public partial class Asset
 {
     public int Id { get; set; }
     public Guid Uuid { get; set; }
@@ -15,4 +15,6 @@ public class Asset
     public int? MediaId { get; set; }
     public virtual Media? Media { get; set; }
     public DateTimeOffset? PrintDate { get; set; }
+    public int AssetStateId { get; set; }
+    public virtual AssetState AssetState { get; set; }
 }

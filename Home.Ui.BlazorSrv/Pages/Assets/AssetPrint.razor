@@ -2,15 +2,18 @@
 
 <h2>Print Assets</h2>
 
-<h3>Options</h3>
 <EditForm Model="_pageModel" OnSubmit="Generate">
     <fieldset disabled="@_isWorking">
     <div class="row">
-        <div class="col-4">
+        <div class="col-4 border-end">
             <h4>Limits</h4>
             <div class="form-check">
                 <InputCheckbox @bind-Value="_pageModel.PrintOnlyNew" id="optionPrintNewOnly" />
                 <label for="optionPrintNewOnly">Print only new</label>
+            </div>
+            <div class="form-check">
+                <InputCheckbox @bind-Value="_pageModel.PrintOnlySelected" id="optionPrintSelected" disabled="@(_hasSelectedAssets == false)" />
+                <label for="optionPrintSelected">Print previously selected</label>
             </div>
         </div>
         <div class="col-4">
