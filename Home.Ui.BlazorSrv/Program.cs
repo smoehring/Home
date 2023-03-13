@@ -35,7 +35,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddDbContextFactory<DatabaseContext>(optionsBuilder =>
 {
-    optionsBuilder.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
+    optionsBuilder.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"), contextOptionsBuilder => contextOptionsBuilder.CommandTimeout(60 * 10));
 
     if (!builder.Environment.IsDevelopment()) return;
     optionsBuilder.EnableDetailedErrors();

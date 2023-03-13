@@ -20,6 +20,7 @@ namespace Smoehring.Home.Data.SqlDatabase
         public DbSet<Brand> Brands { get; set; }
         public DbSet<AssetType> AssetTypes { get; set; }
         public DbSet<AssetState> AssetStates { get; set; }
+        public DbSet<MediaName> MediaNames { get; set; }
 
         #region Overrides of DbContext
 
@@ -122,7 +123,8 @@ namespace Smoehring.Home.Data.SqlDatabase
 
             modelBuilder.Entity<MediaName>(builder =>
             {
-                builder.HasOne<Language>(name => name.Language).WithMany(language => language.MediaNames).OnDelete(DeleteBehavior.Restrict);
+                builder.HasOne<Language>(name => name.Language).WithMany(language => language.MediaNames)
+                    .OnDelete(DeleteBehavior.Restrict).HasForeignKey(name => name.LanguageId);
                 builder.HasIndex(name => name.Name);
             });
         }

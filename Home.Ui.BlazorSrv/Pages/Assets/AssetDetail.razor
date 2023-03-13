@@ -43,7 +43,7 @@
             <div class="col-3">
                 <label for="inputAssetState" class="form-label">State</label>
                 <InputSelect @bind-Value="_currentAsset.AssetStateId" class="form-select">
-                    @foreach (var state in _assetStates)
+                    @foreach (var state in UserCache.AssetStates)
                     {
                         <option value="@state.Id">@state.Name</option>
                     }
@@ -114,7 +114,7 @@
                 <div class="col-4">
                     <label for="inputPurchaseCurrency" class="form-label">Currency</label>
                     <InputSelect @bind-Value="_currentAsset.Purchase.CurrencyId" id="inputPurchaseCurrency" class="form-control mb-3">
-                        @foreach (var currency in _currencies)
+                        @foreach (var currency in UserCache.Currencies)
                         {
                             <option value="@currency.Id">@currency.Name</option>
                         }
@@ -154,6 +154,62 @@
                 <div class="col-3">
                     <label for="inputMediaGroupOrder" class="form-label">Order</label>
                     <InputNumber @bind-Value="_currentAsset.Media.GroupOrder" class="form-control mb-3" id="inputMediaGroupOrder"/>
+                </div>
+                <div class="col-12">
+                    <table class="table-sm caption-top">
+                        <caption>Alternative Names</caption>
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Language</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @if (_currentAsset.Media.MediaNames is not null)
+                        {
+                            foreach (var name in _currentAsset.Media.MediaNames)
+                            {
+                                <tr>
+                                    <td>
+                                        <InputText class="form-control" @bind-Value="@name.Name"/>
+                                    </td>
+                                    <td>
+                                            <InputSelect @bind-Value="@name.LanguageId" class="form-select">
+                                            @foreach (var language in UserCache.Languages)
+                                            {
+                                                <option value="@language.Id">@language.DisplayName</option>
+                                            }
+                                        </InputSelect>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger"><i class="bi bi-trash" @onclick="@(() => RemoveMediaName_OnClick(name))"></i></button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                        <tfoot>
+                        <tr>
+                            <td>
+                                <InputText class="form-control" @bind-Value="_tempMediaName.Name"/>
+                            </td>
+                            <td>
+                                <InputSelect @bind-Value="_tempMediaName.LanguageId" class="form-select">
+                                    @foreach (var language in UserCache.Languages)
+                                    {
+                                        <option value="@language.Id">@language.DisplayName</option>
+                                    }
+                                </InputSelect>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-primary">
+                                    <i class="bi bi-plus" @onclick="AddMediaName_OnClick"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        </tfoot>
+                    </table>
                 </div>
                 <div class="col-12">
                     <button class="btn btn-danger float-end mb-3" @onclick="RemoveMediaInformation_OnCLick">Remove Media Information</button>

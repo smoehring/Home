@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Smoehring.Home.Data.SqlDatabase;
 using Smoehring.Home.Data.SqlDatabase.Models;
 using Smoehring.Home.Ui.BlazorSrv.Const;
+using Smoehring.Home.Ui.BlazorSrv.Data;
 
 namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
 {
@@ -11,6 +12,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
     {
         [Inject] public IDbContextFactory<DatabaseContext> DbContextFactory { get; set; }
         [Inject] public NavigationManager NavigationManager { get; set; }
+        [Inject] public UserCacheService UserCache { get; set; }
         [Parameter] public Guid? Uuid { get; set; }
 
         private Asset _currentAsset;
@@ -21,12 +23,11 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         private IReadOnlyList<Brand>? _brandSuggestions;
         private IReadOnlyList<AssetType>? _assetTypeSuggestions;
         private IReadOnlyList<MediaGroup>? _mediaGroups;
-        private IReadOnlyList<AssetState> _assetStates;
         private string _currentBrand = string.Empty;
         private string _currentAssetType = string.Empty;
         private string _currentMediaGroup = string.Empty;
+        private MediaName _tempMediaName = new MediaName() { LanguageId = 1 };
         private bool _isWorking;
-        private IReadOnlyList<Currency> _currencies;
 
         #region Overrides of ComponentBase
 
@@ -34,8 +35,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         protected override void OnInitialized()
         {
             _context = DbContextFactory.CreateDbContext();
-            _currencies = _context.Currencies.ToList();
-            _assetStates = _context.AssetStates.ToList();
+            
         }
 
         /// <inheritdoc />
@@ -55,6 +55,8 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
                     .Include(asset => asset.Brand)
                     .Include(asset => asset.Media)
                     .ThenInclude(group => group.Group)
+                    .Include(asset => asset.Media)
+                    .ThenInclude(asset => asset.MediaNames)
                     .Include(asset => asset.Device)
                     .Include(asset => asset.Purchase)
                     .Include(asset => asset.AssetState)
@@ -96,7 +98,11 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
 
         protected Asset CreateNewAsset()
         {
-            return new Asset() { Creation = DateTimeOffset.Now, Uuid = new Guid() };
+            return new Asset()
+            {
+                Creation = DateTimeOffset.Now,
+                AssetStateId = UserCache.AssetStates.First(state => state.IsDefault).Id
+            };
         }
 
         private async Task EditForm_OnSubmit(EditContext obj)
@@ -165,7 +171,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
 
         private void AddPurchaseInformation_OnCLick()
         {
-            _currentAsset.Purchase = new Purchase() { PurchaseTime = DateTimeOffset.Now.Date, CurrencyId = _currencies.First().Id};
+            _currentAsset.Purchase = new Purchase() { PurchaseTime = DateTimeOffset.Now.Date, CurrencyId = UserCache.Currencies.First().Id};
 
         }
 
@@ -198,6 +204,20 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         private void CreateNew()
         {
             NavigationManager.NavigateTo("/Asset/New");
+        }
+
+        private void RemoveMediaName_OnClick(MediaName mediaName)
+        {
+            _currentAsset.Media?.MediaNames?.Remove(mediaName);
+            _context.MediaNames.Remove(mediaName);
+        }
+
+        private void AddMediaName_OnClick()
+        {
+            if(string.IsNullOrWhiteSpace(_tempMediaName.Name)) return;
+            _currentAsset.Media.MediaNames ??= new List<MediaName>();
+            _currentAsset.Media.MediaNames.Add(_tempMediaName);
+            _tempMediaName = new MediaName() { LanguageId = 1 };
         }
     }
 }

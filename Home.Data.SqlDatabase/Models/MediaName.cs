@@ -12,6 +12,7 @@ namespace Smoehring.Home.Data.SqlDatabase.Models
         public string Name { get; set; }
 
         public Media Media { get; set; }
+        public int LanguageId { get; set; }
         public virtual Language Language { get; set; }
     }
 }

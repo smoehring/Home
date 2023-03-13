@@ -2,6 +2,18 @@
 
 <div class="row justify-content-center">
     <div class="col">
+        @if (_isDatabaseWakingUp && !_isDatabaseAvailable)
+        {
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                <i class="bi bi-database-fill-exclamation"> The Database is apparently hibernating, please be patient while the startup process is running.</i>
+            </div>
+        }
+        @if (_isDatabaseWakingUp && _isDatabaseAvailable)
+        {
+            <div class="alert alert-success d-flex align-items-center" role="alert">
+                <i class="bi bi-database-fill-check"> The Database is now available.</i>
+            </div>
+        }
         <table class="table">
             <thead>
             <tr>
@@ -13,7 +25,17 @@
             <tbody>
             <tr>
                 <td>
-                    <h3>@(_values == null ? "-" : _values[nameof(Asset)])</h3>
+                    <h3>@if (_values == null)
+                        {
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        }
+                        else
+                        {
+                                <span>@_values[nameof(Asset)]</span>
+                        }
+                        </h3>
                 </td>
                 <td>
                     <h3>-</h3>
