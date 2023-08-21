@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
+using MudBlazor.Services;
 using Serilog;
 using Smoehring.Home.Data.SqlDatabase;
 using Smoehring.Home.Ui.BlazorSrv.Data;
@@ -51,6 +52,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor()
     .AddMicrosoftIdentityConsentHandler();
 builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddMudServices();
 
 var app = builder.Build();
 

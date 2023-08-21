@@ -3,10 +3,55 @@
 <div class="row">
     <div class="col">
         <div>
-            <button class="btn btn-primary float-end" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/New")'><i class="bi bi-file-plus"></i>New</button>
-            <button class="btn btn-secondary float-end me-3" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/Print")'><i class="bi bi-printer"></i>Print</button>
+            <button class="btn btn-primary float-end mb-3" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/New")'><i class="bi bi-file-plus"></i>New</button>
+            <button class="btn btn-secondary float-end me-3 mb-3" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/Print")'><i class="bi bi-printer"></i>Print</button>
         </div>
-        @if (_assets != null)
+    </div>
+    <div class="row">
+        <div class="col"></div>
+        <MudTable ServerData="@(new Func<TableState, Task<TableData<Asset>>>(ServerReload))" @ref="_table">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Assets</MudText>
+                <MudSpacer/>
+                <MudTextField T="string" ValueChanged="@(OnSearch)" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh></MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortLabel="@nameof(Asset.Brand)" T="Asset">Brand</MudTableSortLabel>
+                </MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortLabel="@nameof(Asset.Name)" T="Asset">Name</MudTableSortLabel>
+                </MudTh>
+                <MudTh>
+                    <MudTableSortLabel SortLabel="@nameof(Asset.AssetType)" T="Asset">Type</MudTableSortLabel>
+                </MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    @* <MudCheckbox @bind-Checked="@context.IsSelected" Color="Color.Secondary" /> *@
+                </MudTd>
+                <MudTd>@context.Brand?.Name</MudTd>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>@context.AssetType?.Name</MudTd>
+                <MudTd>
+                    <MudButton Icon="@Icons.Material.Filled.Edit" Color="Color.Secondary" Variant="Variant.Filled" @onclick="@(() => NavigationManager.NavigateTo($"/Asset/{context.Uuid:N}"))"/>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>Nothing to show.</MudText>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudText>Loading...</MudText>
+            </LoadingContent>
+            <PagerContent>
+                <MudTablePager ShowEntriesPerPage="true" ShowFirstLastButtons="true"/>
+            </PagerContent>
+        </MudTable>
+    </div>
+</div>
+        @* @if (_assets != null)
         {
             <EditForm EditContext="_editContext">
                 <table class="table">
@@ -24,7 +69,7 @@
                     @if (!_assets.Any())
                     {
                         <tr>
-                            <td colspan="3">
+                            <td colspan="6">
                                 <em>Nothing to show.</em>
                             </td>
                         </tr>
@@ -57,14 +102,12 @@
                         }
                     }
                     </tbody>
-                </table>
-            </EditForm>
+                </table> *@
+        @*             </EditForm>
         }
         else
         {
             <div class="spinner-border-sm text-primary">
                 <span class="visually-hidden">Loading...</span>
             </div>
-        }
-    </div>
-</div>
+        } *@

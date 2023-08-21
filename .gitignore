@@ -365,6 +365,7 @@ FodyWeavers.xsd
 # Client-Side Libraries
 /Home.Ui.BlazorSrv/wwwroot/bootstrap-icons/
 /Home.Ui.BlazorSrv/wwwroot/twitter-bootstrap/
+/Home.Ui.BlazorSrv/wwwroot/gitgraph.js/
 /Home.Ui.BlazorSrv/Properties/ServiceDependencies/homesnovalde - Zip Deploy/profile.arm.json
 /Home.Ui.BlazorSrv/Properties/ServiceDependencies/local/appInsights1.arm.json
 /Home.Ui.BlazorSrv/Properties/serviceDependencies.local.json

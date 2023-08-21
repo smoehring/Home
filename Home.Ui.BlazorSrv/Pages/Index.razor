@@ -27,15 +27,15 @@
                 <td>
                     <h3>@if (_values == null)
                         {
-                            <div class="spinner-border" role="status">
+                            <span class="spinner-border" role="status">
                                 <span class="visually-hidden">Loading...</span>
-                            </div>
+                            </span>
                         }
                         else
                         {
-                                <span>@_values[nameof(Asset)]</span>
+                            <span>@_values[nameof(Asset)]</span>
                         }
-                        </h3>
+                    </h3>
                 </td>
                 <td>
                     <h3>-</h3>
@@ -49,3 +49,5 @@
 
     </div>
 </div>
+
+<GitGraph />
