@@ -1,11 +1,11 @@
-﻿using System.Diagnostics;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 using Smoehring.Home.Data.SqlDatabase;
 using Smoehring.Home.Data.SqlDatabase.Models;
 using Smoehring.Home.Ui.BlazorSrv.Data;
+using ComponentBase = Microsoft.AspNetCore.Components.ComponentBase;
 
 namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
 {
@@ -58,13 +58,20 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
 
             var totalItems = await baseQuery.CountAsync();
 
-            baseQuery = tstate.SortLabel switch
+            if (!string.IsNullOrWhiteSpace(tstate.SortLabel))
             {
-                nameof(Asset.Name) => baseQuery.OrderByDirection(tstate.SortDirection, asset => asset.Name),
-                nameof(Asset.AssetType) => baseQuery.OrderByDirection(tstate.SortDirection, asset => asset.AssetType.Name),
-                nameof(Asset.Brand) => baseQuery.OrderByDirection(tstate.SortDirection, asset => asset.Brand.Name),
-                _ => baseQuery.OrderByDescending(asset => asset.Id)
-            };
+                baseQuery = tstate.SortLabel switch
+                {
+                    nameof(Asset.Name) => baseQuery.OrderByDirection(tstate.SortDirection, asset => asset.Name),
+                    nameof(Asset.AssetType) => baseQuery.OrderByDirection(tstate.SortDirection, asset => asset.AssetType.Name),
+                    nameof(Asset.Brand) => baseQuery.OrderByDirection(tstate.SortDirection, asset => asset.Brand.Name),
+                    _ => baseQuery.OrderByDescending(asset => asset.Id)
+                }; 
+            }
+            else
+            {
+                baseQuery = baseQuery.OrderBy(asset => asset.Id);
+            }
 
             var assets = await baseQuery.Skip(tstate.Page * tstate.PageSize).Take(tstate.PageSize).ToListAsync();
 
@@ -75,6 +82,11 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         {
             _searchString = searchword;
             await _table.ReloadServerData();
+        }
+
+        private void Table_OnRowClick(TableRowClickEventArgs<Asset> arg)
+        {
+            NavigationManager.NavigateTo($"/Asset/{arg.Item.Uuid:N}");
         }
     }
 }

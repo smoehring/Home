@@ -9,7 +9,7 @@
     </div>
     <div class="row">
         <div class="col"></div>
-        <MudTable ServerData="@(new Func<TableState, Task<TableData<Asset>>>(ServerReload))" @ref="_table">
+        <MudTable ServerData="@(new Func<TableState, Task<TableData<Asset>>>(ServerReload))" OnRowClick="Table_OnRowClick" T="Asset" @ref="_table">
             <ToolBarContent>
                 <MudText Typo="Typo.h6">Assets</MudText>
                 <MudSpacer/>
@@ -26,18 +26,19 @@
                 <MudTh>
                     <MudTableSortLabel SortLabel="@nameof(Asset.AssetType)" T="Asset">Type</MudTableSortLabel>
                 </MudTh>
-                <MudTh></MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>
-                    @* <MudCheckbox @bind-Checked="@context.IsSelected" Color="Color.Secondary" /> *@
+                    @if (context.MediaId is not null)
+                    {<i class="bi bi-disc"></i>}
+                    @if (context.DeviceId is not null)
+                    {<i class="bi bi-projector"></i>}
+                    @if (context.PurchaseId is not null)
+                    {<i class="bi bi-currency-euro"></i>}
                 </MudTd>
                 <MudTd>@context.Brand?.Name</MudTd>
                 <MudTd>@context.Name</MudTd>
                 <MudTd>@context.AssetType?.Name</MudTd>
-                <MudTd>
-                    <MudButton Icon="@Icons.Material.Filled.Edit" Color="Color.Secondary" Variant="Variant.Filled" @onclick="@(() => NavigationManager.NavigateTo($"/Asset/{context.Uuid:N}"))"/>
-                </MudTd>
             </RowTemplate>
             <NoRecordsContent>
                 <MudText>Nothing to show.</MudText>
