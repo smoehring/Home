@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Smoehring.Home.Data.SqlDatabase;
+using Smoehring.Home.Data.SqlDatabase.Const;
 using Smoehring.Home.Data.SqlDatabase.Models;
 using Smoehring.Home.Ui.BlazorSrv.Const;
 using Smoehring.Home.Ui.BlazorSrv.Data;
@@ -13,6 +16,8 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         [Inject] public IDbContextFactory<DatabaseContext> DbContextFactory { get; set; }
         [Inject] public NavigationManager NavigationManager { get; set; }
         [Inject] public UserCacheService UserCache { get; set; }
+        [Inject] public BlobServiceClient BlobServiceClient { get; set; }
+        [Inject] public IHostEnvironment HostEnvironment { get; set; }
         [Parameter] public Guid? Uuid { get; set; }
 
         private Asset _currentAsset;
@@ -22,12 +27,26 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         private ValidationMessageStore _validationMessageStore;
         private IReadOnlyList<Brand>? _brandSuggestions;
         private IReadOnlyList<AssetType>? _assetTypeSuggestions;
+        private IReadOnlyList<ArtworkCharacters>? _characterNameSuggestions;
+        private IReadOnlyList<ArtworkArtist>? _artistNameSuggestions;
         private IReadOnlyList<MediaGroup>? _mediaGroups;
+        private IReadOnlyList<IBrowserFile>? _tempBrowserFiles;
         private string _currentBrand = string.Empty;
         private string _currentAssetType = string.Empty;
         private string _currentMediaGroup = string.Empty;
         private MediaName _tempMediaName = new MediaName() { LanguageId = 1 };
+        private string _tempArtistName = string.Empty;
+        private string _tempCharacterName = string.Empty;
+
+        private string _fileStorageBaseUrl =>
+            $"{BlobServiceClient.Uri.AbsoluteUri}{_storageContainerName}-{HostEnvironment.EnvironmentName.ToLower()}";
         private bool _isWorking;
+
+        private static string DefaultFileDragClass =
+            "relative rounded-lg border-2 border-dashed pa-4 mt-4 mud-width-full mud-height-full z-10";
+
+        private static string FileDragClass = DefaultFileDragClass;
+        private static string _storageContainerName = "assetfile";
 
         #region Overrides of ComponentBase
 
@@ -60,6 +79,12 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
                     .Include(asset => asset.Device)
                     .Include(asset => asset.Purchase)
                     .Include(asset => asset.AssetState)
+                    .Include(asset => asset.Artwork)
+                    .ThenInclude(artwork => artwork.Characters)
+                    .Include(asset => asset.Artwork)
+                    .ThenInclude(artwork => artwork.Artists)
+                    .ThenInclude(artist => artist.Names)
+                    .Include(asset => asset.Files)
                     .FirstOrDefault(asset => asset.Uuid.Equals(Uuid));
 
                 _mode = AssetDetailMode.Edit;
@@ -89,6 +114,8 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
 
             _brandSuggestions = _context.Brands.ToList();
             _assetTypeSuggestions = _context.AssetTypes.ToList();
+            _artistNameSuggestions = _context.Artists.Include(artist => artist.Names).ToList();
+            _characterNameSuggestions = _context.Characters.ToList();
 
             _editContext = new EditContext(_currentAsset);
             _validationMessageStore = new ValidationMessageStore(_editContext);
@@ -151,6 +178,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
             }
 
             await _context.SaveChangesAsync();
+            await ClearFiles();
             _isWorking = false;
             _mode = AssetDetailMode.Edit;
             NavigationManager.NavigateTo($"/Asset/{_currentAsset.Uuid:N}");
@@ -218,6 +246,130 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
             _currentAsset.Media.MediaNames ??= new List<MediaName>();
             _currentAsset.Media.MediaNames.Add(_tempMediaName);
             _tempMediaName = new MediaName() { LanguageId = 1 };
+        }
+
+        private void AddArtworkInformation_OnCLick()
+        {
+            _currentAsset.Artwork = new Artwork()
+            {
+                Stage = ArtworkStages.Backlog, Artists = new List<ArtworkArtist>(),
+                Characters = new List<ArtworkCharacters>()
+            };
+        }
+
+        private void RemoveArtworkInformation_OnCLick()
+        {
+            if (_currentAsset.Artwork is not null && _currentAsset.Artwork.Id > 0)
+            {
+                _context.Artworks.Remove(_currentAsset.Artwork);
+            }
+
+            _currentAsset.Artwork = null;
+        }
+
+        private void AddArtistName_OnClick()
+        {
+            var currentArtist = _artistNameSuggestions?.FirstOrDefault(artist => artist.Names.Any(name => name.Name.Equals(_tempArtistName)));
+            if (currentArtist is null)
+            {
+                currentArtist = new ArtworkArtist() { Names = new List<ArtistName>() };
+                currentArtist.Names.Add(new ArtistName() { Name = _tempArtistName });
+            }
+            _currentAsset.Artwork.Artists.Add(currentArtist);
+        }
+
+        private void RemoveArtistName_OnClick(ArtworkArtist artist)
+        {
+            _currentAsset.Artwork.Artists.Remove(artist);
+        }
+
+        private void AddCharacterName_OnClick()
+        {
+            var currentCharacter = _characterNameSuggestions?.FirstOrDefault(character => character.Name.Equals(_tempCharacterName));
+            if (currentCharacter is null)
+            {
+                currentCharacter = new ArtworkCharacters() { Name = _tempCharacterName };
+                _context.Characters.Add(currentCharacter);
+            }
+            _currentAsset.Artwork.Characters.Add(currentCharacter);
+        }
+
+        private void RemoveCharacter_OnClick(int characterId)
+        {
+            _currentAsset.Artwork.Characters.Remove(_currentAsset.Artwork.Characters.First(character => character.Id == characterId));
+        }
+
+        private void AddFileInformation_OnCLick()
+        {
+            _currentAsset.Files = new List<AssetFile>();
+        }
+
+        private void OnInputFilesChanged(InputFileChangeEventArgs e)
+        {
+            ClearDragClass();
+            var files = e.GetMultipleFiles();
+            _tempBrowserFiles = files;
+        }
+
+        private void SetDragClass()
+        {
+            FileDragClass = $"{DefaultFileDragClass} mud-border-primary"; 
+        }
+
+        private void ClearDragClass()
+        {
+            FileDragClass = DefaultFileDragClass;
+        }
+
+        private async Task UploadFiles()
+        {
+            if (_currentAsset.Id <= 0)
+            {
+                return;
+            }
+            _isWorking = true;
+            await InvokeAsync(StateHasChanged);
+
+            var containerName = $"{_storageContainerName}-{HostEnvironment.EnvironmentName.ToLower()}";
+            var blobClient = BlobServiceClient.GetBlobContainerClient(containerName);
+            await blobClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+
+            foreach (var file in _tempBrowserFiles)
+            {
+                var assetFile = new AssetFile()
+                {
+                    OriginalFileName = file.Name,
+                    Size = file.Size,
+                    ContentType = file.ContentType,
+                    StorageFileName = $"{_currentAsset.Uuid:N}x{Guid.NewGuid():N}{Path.GetExtension(file.Name)}"
+                };
+                var respone = await blobClient.UploadBlobAsync(assetFile.StorageFileName, file.OpenReadStream(1024*1024*1024));
+                if (respone.GetRawResponse().IsError) continue;
+                _currentAsset.Files.Add(assetFile);
+                var currentBlob = blobClient.GetBlobClient(assetFile.StorageFileName);
+                var properties = await currentBlob.GetPropertiesAsync();
+                var newHeaders = new BlobHttpHeaders
+                {
+                    ContentType = assetFile.ContentType,
+                    CacheControl = "public, max-age=31536000",
+                    ContentDisposition = properties.Value.ContentDisposition,
+                    ContentEncoding = properties.Value.ContentEncoding,
+                    ContentLanguage = properties.Value.ContentLanguage,
+                    ContentHash = properties.Value.ContentHash
+                };
+                await currentBlob.SetHttpHeadersAsync(newHeaders);
+            }
+
+            await _context.SaveChangesAsync();
+            await ClearFiles();
+            _isWorking = false;
+        }
+
+        private Task ClearFiles()
+        {
+            _tempBrowserFiles = new List<IBrowserFile>();
+            ClearDragClass();
+            return Task.CompletedTask;
         }
     }
 }

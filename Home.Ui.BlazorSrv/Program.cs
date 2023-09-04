@@ -8,6 +8,7 @@ using MudBlazor.Services;
 using Serilog;
 using Smoehring.Home.Data.SqlDatabase;
 using Smoehring.Home.Ui.BlazorSrv.Data;
+using Microsoft.Extensions.Azure;
 
 Log.Logger = new LoggerConfiguration()
     .CreateBootstrapLogger();
@@ -53,6 +54,11 @@ builder.Services.AddServerSideBlazor()
     .AddMicrosoftIdentityConsentHandler();
 builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddMudServices();
+builder.Services.AddAzureClients(clientBuilder =>
+{
+    clientBuilder.AddBlobServiceClient(builder.Configuration["ConnectionStrings:AzureStorage"], preferMsi: false);
+    clientBuilder.AddQueueServiceClient(builder.Configuration["ConnectionStrings:AzureStorage"], preferMsi: false);
+});
 
 var app = builder.Build();
 

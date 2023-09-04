@@ -45,7 +45,12 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         {
             await using var context = await DbContextFactory.CreateDbContextAsync();
             context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
-            var baseQuery = context.Assets.Include(asset => asset.Brand).Include(asset => asset.AssetType).AsQueryable();
+            var baseQuery = context.Assets
+                .Include(asset => asset.Brand)
+                .Include(asset => asset.AssetType)
+                .Include(asset => asset.Artwork)
+                .Include(asset => asset.Files)
+                .AsQueryable();
 
             // Filter by search string
             if (!string.IsNullOrWhiteSpace(_searchString))

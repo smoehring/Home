@@ -1,8 +1,9 @@
 ﻿@page "/Asset/{Uuid:guid?}"
 @page "/Asset/New"
 @using Smoehring.Home.Ui.BlazorSrv.Const
+@using Smoehring.Home.Data.SqlDatabase.Const
 
-<EditForm EditContext="_editContext" OnSubmit="EditForm_OnSubmit">
+<EditForm EditContext="_editContext" OnSubmit="EditForm_OnSubmit" Context="EditFormContext">
     <fieldset disabled="@_isWorking">
         <div class="row">
             <h3>Asset:</h3>
@@ -135,95 +136,242 @@
                 </div>
             }
         </div>
-        <div class="row">
-            @if (_currentAsset.Media != null)
-            {
-                <h4>Media Information</h4>
-                <div class="col-9">
-                    <label for="inputMediaGroupName" class="form-label">Group</label>
-                    <InputText @bind-Value="_currentMediaGroup" class="form-control mb-3" id="inputMediaGroupName" list="suggestionMediaGroup"/>
-                    <datalist id="suggestionMediaGroup">
-                        @if (_mediaGroups != null)
+    <div class="row">
+        @if (_currentAsset.Media != null)
+        {
+            <h4>Media Information</h4>
+            <div class="col-9">
+                <label for="inputMediaGroupName" class="form-label">Group</label>
+                <InputText @bind-Value="_currentMediaGroup" class="form-control mb-3" id="inputMediaGroupName" list="suggestionMediaGroup"/>
+                <datalist id="suggestionMediaGroup">
+                    @if (_mediaGroups != null)
+                    {
+                        foreach (var group in _mediaGroups)
                         {
-                            foreach (var group in _mediaGroups)
-                            {
-                                <option value="@group.Name" />
-                            }
+                            <option value="@group.Name" />
                         }
-                    </datalist>
+                    }
+                </datalist>
+            </div>
+            <div class="col-3">
+                <label for="inputMediaGroupOrder" class="form-label">Order</label>
+                <InputNumber @bind-Value="_currentAsset.Media.GroupOrder" class="form-control mb-3" id="inputMediaGroupOrder"/>
+            </div>
+            <div class="col-12">
+                <table class="table-sm caption-top">
+                    <caption>Alternative Names</caption>
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Language</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @if (_currentAsset.Media.MediaNames is not null)
+                    {
+                        foreach (var name in _currentAsset.Media.MediaNames)
+                        {
+                            <tr>
+                                <td>
+                                    <InputText class="form-control" @bind-Value="@name.Name"/>
+                                </td>
+                                <td>
+                                    <InputSelect @bind-Value="@name.LanguageId" class="form-select">
+                                        @foreach (var language in UserCache.Languages)
+                                        {
+                                            <option value="@language.Id">@language.DisplayName</option>
+                                        }
+                                    </InputSelect>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-danger"><i class="bi bi-trash" @onclick="@(() => RemoveMediaName_OnClick(name))"></i></button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <td>
+                            <InputText class="form-control" @bind-Value="_tempMediaName.Name"/>
+                        </td>
+                        <td>
+                            <InputSelect @bind-Value="_tempMediaName.LanguageId" class="form-select">
+                                @foreach (var language in UserCache.Languages)
+                                {
+                                    <option value="@language.Id">@language.DisplayName</option>
+                                }
+                            </InputSelect>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-primary">
+                                <i class="bi bi-plus" @onclick="AddMediaName_OnClick"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="col-12">
+                <button class="btn btn-danger float-end mb-3" @onclick="RemoveMediaInformation_OnCLick">Remove Media Information</button>
+            </div>
+        }
+        else
+        {
+            <div class="col-12">
+                <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddMediaInformation_OnCLick">Add Media Information</button>
+            </div>
+        }
+    </div>
+    <div class="row">
+        @if (_currentAsset.Artwork != null)
+        {
+            <h4>Artwork Information</h4>
+            <div class="col-3">
+                <label for="inputArtworkStage" class="form-label">Stage</label>
+                <InputSelect @bind-Value="_currentAsset.Artwork.Stage" id="inputArtworkStage" class="form-control mb-3">
+                    @foreach (var stage in Enum.GetValues<ArtworkStages>())
+                    {
+                        <option value="@stage">@Enum.GetName(stage)</option>
+                    }
+                </InputSelect>
+                <div class="form-check">
+                    <InputCheckbox id="inputArtworkAdultCheck" @bind-Value="_currentAsset.Artwork.IsAdult" class="form-check-input mb-3"/>
+                    <label for="inputArtworkAdultCheck" class="form-check-label">NSFW</label>
                 </div>
-                <div class="col-3">
-                    <label for="inputMediaGroupOrder" class="form-label">Order</label>
-                    <InputNumber @bind-Value="_currentAsset.Media.GroupOrder" class="form-control mb-3" id="inputMediaGroupOrder"/>
-                </div>
-                <div class="col-12">
-                    <table class="table-sm caption-top">
-                        <caption>Alternative Names</caption>
-                        <thead>
+                
+            </div>
+            <div class="col-3">
+                <label class="form-label">Artists</label>
+                <table class="table-sm with-label">
+                    <tbody>
+                    @foreach (var artist in _currentAsset.Artwork.Artists)
+                    {
+
                         <tr>
-                            <th>Name</th>
-                            <th>Language</th>
-                            <th></th>
+                            <td>@(artist.Names?.FirstOrDefault()?.Name ?? "NoName!")</td>
+                            <td><button type="button" class="btn btn-danger"><i class="bi bi-trash" @onclick="@(() => RemoveArtistName_OnClick(artist))"></i></button></td>
                         </tr>
-                        </thead>
-                        <tbody>
-                        @if (_currentAsset.Media.MediaNames is not null)
-                        {
-                            foreach (var name in _currentAsset.Media.MediaNames)
-                            {
-                                <tr>
-                                    <td>
-                                        <InputText class="form-control" @bind-Value="@name.Name"/>
-                                    </td>
-                                    <td>
-                                            <InputSelect @bind-Value="@name.LanguageId" class="form-select">
-                                            @foreach (var language in UserCache.Languages)
-                                            {
-                                                <option value="@language.Id">@language.DisplayName</option>
-                                            }
-                                        </InputSelect>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-danger"><i class="bi bi-trash" @onclick="@(() => RemoveMediaName_OnClick(name))"></i></button>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        </tbody>
-                        <tfoot>
-                        <tr>
-                            <td>
-                                <InputText class="form-control" @bind-Value="_tempMediaName.Name"/>
-                            </td>
-                            <td>
-                                <InputSelect @bind-Value="_tempMediaName.LanguageId" class="form-select">
-                                    @foreach (var language in UserCache.Languages)
+                    }
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <td><InputText class="form-control" @bind-Value="_tempArtistName" id="inputArtistName" list="inputArtistNameSuggestions"/>
+                            <datalist id="inputArtistNameSuggestions">
+                                @if (_artistNameSuggestions is not null)
+                                {
+                                    foreach (var name in _artistNameSuggestions.SelectMany(artist => artist.Names).Select(name => name.Name))
                                     {
-                                        <option value="@language.Id">@language.DisplayName</option>
+                                        <option value="@name"/>
                                     }
-                                </InputSelect>
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-primary">
-                                    <i class="bi bi-plus" @onclick="AddMediaName_OnClick"></i>
-                                </button>
-                            </td>
+                                }
+                            </datalist>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-primary">
+                                <i class="bi bi-plus" @onclick="AddArtistName_OnClick"></i>
+                            </button></td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="col-3">
+                <label class="form-label">Characters</label>
+                <table class="table-sm with-label">
+                    <tbody>
+                    @foreach (var character in _currentAsset.Artwork.Characters)
+                    {
+
+                        <tr>
+                            <td>@(@character.Name)</td>
+                            <td><button type="button" class="btn btn-danger"><i class="bi bi-trash" @onclick="@(() => RemoveCharacter_OnClick(character.Id))"></i></button></td>
                         </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                <div class="col-12">
-                    <button class="btn btn-danger float-end mb-3" @onclick="RemoveMediaInformation_OnCLick">Remove Media Information</button>
-                </div>
-            }
-            else
-            {
-                <div class="col-12">
-                    <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddMediaInformation_OnCLick">Add Media Information</button>
-                </div>
-            }
-        </div>
-        <button type="submit" class="btn btn-primary float-end">Save</button>
-        <button type="button" class="btn btn-secondary float-end me-3" disabled="@(_mode == AssetDetailMode.Create)" @onclick="CreateNew">New</button>
+                    }
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <td>
+                            <InputText class="form-control" @bind-Value="_tempCharacterName" id="inputCharacterName" list="inputCharacterNameSuggestions"/>
+                            <datalist id="inputCharacterNameSuggestions">
+                                @if (_characterNameSuggestions is not null)
+                                {
+                                    foreach (var name in _characterNameSuggestions)
+                                    {
+                                        <option value="@name"/>
+                                    }
+                                }
+                            </datalist>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-primary">
+                                <i class="bi bi-plus" @onclick="AddCharacterName_OnClick"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="col-3">
+                @*TODO: Artwork Set here*@
+            </div>
+
+            <div class="col-12">
+                <button class="btn btn-danger float-end mb-3" @onclick="RemoveArtworkInformation_OnCLick">Remove Artwork Information</button>
+            </div>
+        }
+        else
+        {
+            <div class="col-12">
+                <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddArtworkInformation_OnCLick">Add Artwork Information</button>
+            </div>
+        }
+    </div>
+    <div class="row">
+        @if (_currentAsset.Files != null)
+        {
+            <MudStack Style="Width: 100%">
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" OnFilesChanged="OnInputFilesChanged" AppendMultipleFiles Hidden="false" Class="flex-1" InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20" InputStyle="opacity:0" @ondragenter="@SetDragClass" @ondragleave="@ClearDragClass" @ondragend="@ClearDragClass" Disabled="@(_currentAsset.Id <= 0)">
+                    <ButtonTemplate Context="ButtonContext">
+                        <MudPaper Height="150px" Outlined="true" Class="@FileDragClass">
+                            <MudText Typo="Typo.h6">Drag or click to add Files </MudText>
+                            @if(_tempBrowserFiles != null) {
+                                foreach (var file in _tempBrowserFiles.Select(file => file.Name))
+                                {
+                                    <MudChip Color="Color.Dark" Text="@file" />
+                                }
+                            }
+                        </MudPaper>
+                    </ButtonTemplate>
+                </MudFileUpload>
+                <MudToolBar DisableGutters="true" Class="gap-4">
+                    <MudButton OnClick="UploadFiles" Disabled="@(_currentAsset.Id <= 0 || _tempBrowserFiles == null || !_tempBrowserFiles.Any())" Color="Color.Primary" Variant="Variant.Filled">Upload</MudButton>
+                    <MudButton OnClick="ClearFiles" Disabled="@(_currentAsset.Id <= 0 || _tempBrowserFiles == null || !_tempBrowserFiles.Any())" Color="Color.Error" Variant="Variant.Filled">Clear</MudButton>
+                </MudToolBar>
+            </MudStack>
+            <MudTable Items="@_currentAsset.Files" T="AssetFile" FixedHeader="true" RowsPerPage="10" Height="400px" Class="mb-3">
+                <HeaderContent>
+                    <MudTh>Original Name</MudTh>
+                    <MudTh>Type</MudTh>
+                    <MudTh>Size</MudTh>
+                    <MudTh>Link</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.OriginalFileName</MudTd>
+                    <MudTd>@context.ContentType</MudTd>
+                    <MudTd>@context.Size</MudTd>
+                    <MudTd><a href="@($"{_fileStorageBaseUrl}/{context.StorageFileName}")" target="_blank">@context.StorageFileName</a></MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <div class="col-12">
+                <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddFileInformation_OnCLick">Add Files</button>
+            </div>
+        }
+    </div>
+    <button type="submit" class="btn btn-primary float-end">Save</button>
+    <button type="button" class="btn btn-secondary float-end me-3 mb-3" disabled="@(_mode == AssetDetailMode.Create)" @onclick="CreateNew">New</button>
     </fieldset>
 </EditForm>

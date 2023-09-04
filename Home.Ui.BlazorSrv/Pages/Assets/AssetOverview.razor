@@ -35,6 +35,12 @@
                     {<i class="bi bi-projector"></i>}
                     @if (context.PurchaseId is not null)
                     {<i class="bi bi-currency-euro"></i>}
+                    @if (context.Artwork is not null)
+                    {<i class="bi bi-image"></i>}
+                    @if (context.Files is not null)
+                    {
+                        <i class="bi bi-file-earmark"></i>
+                    }
                 </MudTd>
                 <MudTd>@context.Brand?.Name</MudTd>
                 <MudTd>@context.Name</MudTd>

@@ -21,6 +21,10 @@ namespace Smoehring.Home.Data.SqlDatabase
         public DbSet<AssetType> AssetTypes { get; set; }
         public DbSet<AssetState> AssetStates { get; set; }
         public DbSet<MediaName> MediaNames { get; set; }
+        public DbSet<AssetFile> AssetFiles { get; set; }
+        public DbSet<Artwork> Artworks { get; set; }
+        public DbSet<ArtworkArtist> Artists { get; set; }
+        public DbSet<ArtworkCharacters> Characters { get; set; }
 
         #region Overrides of DbContext
 
@@ -48,6 +52,10 @@ namespace Smoehring.Home.Data.SqlDatabase
                     .OnDelete(DeleteBehavior.Restrict).HasForeignKey(asset => asset.AssetStateId);
                 builder.Property(asset => asset.AssetStateId).HasDefaultValue(1);
                 builder.HasIndex(asset => asset.Name);
+                builder.HasOne<Artwork>(asset => asset.Artwork).WithOne(artwork => artwork.Asset)
+                    .OnDelete(DeleteBehavior.Restrict).HasForeignKey<Asset>(asset => asset.ArtworkId);
+                builder.HasMany<AssetFile>(asset => asset.Files).WithOne(file => file.Asset)
+                    .OnDelete(DeleteBehavior.Cascade).HasForeignKey(file => file.AssetId);
             });
 
             modelBuilder.Entity<Media>(builder =>
@@ -127,6 +135,17 @@ namespace Smoehring.Home.Data.SqlDatabase
                     .OnDelete(DeleteBehavior.Restrict).HasForeignKey(name => name.LanguageId);
                 builder.HasIndex(name => name.Name);
             });
+
+            modelBuilder.Entity<ArtistName>(builder =>
+            {
+                builder.HasIndex(name => name.Name);
+            });
+
+            modelBuilder.Entity<ArtworkCharacters>(builder =>
+            {
+                builder.HasIndex(character => character.Name);
+            });
+
         }
 
         #endregion

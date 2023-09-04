@@ -17,4 +17,7 @@ public partial class Asset
     public DateTimeOffset? PrintDate { get; set; }
     public int AssetStateId { get; set; }
     public virtual AssetState AssetState { get; set; }
+    public int? ArtworkId { get; set; }
+    public virtual Artwork? Artwork { get; set; }
+    public ICollection<AssetFile>? Files  { get; set; }
 }
