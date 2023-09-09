@@ -1,48 +1,44 @@
 ﻿@page "/Asset/Print"
 
-<h2>Print Assets</h2>
-
 <EditForm Model="_pageModel" OnSubmit="Generate">
     <fieldset disabled="@_isWorking">
-    <div class="row">
-        <div class="col-4 border-end">
-            <h4>Limits</h4>
-            <div class="form-check">
-                <InputCheckbox @bind-Value="_pageModel.PrintOnlyNew" id="optionPrintNewOnly" />
-                <label for="optionPrintNewOnly">Print only new</label>
-            </div>
-            <div class="form-check">
-                <InputCheckbox @bind-Value="_pageModel.PrintOnlySelected" id="optionPrintSelected" disabled="@(_hasSelectedAssets == false)" />
-                <label for="optionPrintSelected">Print previously selected</label>
-            </div>
-        </div>
-        <div class="col-4">
-            <h4>Sources</h4>
-            <InputRadioGroup @bind-Value="_pageModel.PrintSource">
-                <div class="form-check">
-                    <InputRadio Value="PrintSource.All" id="radioSourceAll" />
-                    <label for="radioSourceAll">All</label>
-                </div>
-                <div class="form-check">
-                    <InputRadio Value="PrintSource.Devices" id="radioSourceDevice" />
-                    <label for="radioSourceDevice">Device</label>
-                </div>
-                <div class="form-check">
-                    <InputRadio Value="PrintSource.Media" id="radioSourceMedia" />
-                    <label for="radioSourceMedia">Media</label>
-                </div>
-            </InputRadioGroup>
-        </div>
-        <div class="row">
-            <div class="col">
-                <button type="submit" class="btn btn-primary float-end mb-3">Generate</button>
-            </div>
-        </div>
-    </div>
+        <MudStack>
+            <MudPaper Class="pa-3">
+                <MudGrid>
+                    <MudItem xs="4">
+                        <MudStack>
+                            <MudText Typo="Typo.h6">Limits</MudText>
+                            <MudCheckBox @bind-Checked="_pageModel.PrintOnlyNew" Label="Print only new" Dense="true" />
+                            <MudCheckBox @bind-Checked="_pageModel.PrintOnlySelected" disabled="@(_hasSelectedAssets == false)" Label="Print previously selected" Dense="true" />
+                        </MudStack>
+                    </MudItem>
+                    <MudItem xs="4">
+                        <MudStack>
+                            <MudGrid>
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.h6">Sources</MudText>
+                                </MudItem>
+                                <MudItem xs="1">
+                                <MudRadioGroup T="PrintSource" @bind-SelectedOption="_pageModel.PrintSource">
+                                    <MudRadio Option="PrintSource.All" Dense="true">All</MudRadio>
+                                        <MudRadio Option="PrintSource.Devices" Dense="true">Devices</MudRadio>
+                                        <MudRadio Option="PrintSource.Media" Dense="true">Media</MudRadio>
+                                </MudRadioGroup>
+                                </MudItem>
+                            </MudGrid>
+                        </MudStack>
+                    </MudItem>
+                    <MudItem xs="4">
+                    <MudStack>
+                        <MudText Typo="Typo.h6">Actions</MudText>
+                        <MudButton Class="ms-3" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">Generate</MudButton>
+                    </MudStack>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+            <MudPaper Class="pa-3">
+                <MudTextField T="string" Label="Output" Lines="20" Text="@_output"/>
+            </MudPaper>
+        </MudStack>
     </fieldset>
 </EditForm>
-<div class="row">
-    <div class="col">
-        <textarea readonly @bind="@_output" class="form-control"></textarea>
-    </div>
-</div>
