@@ -8,7 +8,7 @@ public class Artwork
     public bool IsAdult { get; set; }
     public ArtworkStages Stage { get; set; }
     public virtual ICollection<ArtworkArtist>? Artists { get; set; }
-    public virtual ICollection<ArtworkCharacters>? Characters { get; set; }
+    public virtual ICollection<ArtworkCharacter>? Characters { get; set; }
     public virtual Asset? Asset { get; set; }
 
 }

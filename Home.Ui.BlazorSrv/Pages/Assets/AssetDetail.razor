@@ -2,376 +2,302 @@
 @page "/Asset/New"
 @using Smoehring.Home.Ui.BlazorSrv.Const
 @using Smoehring.Home.Data.SqlDatabase.Const
+@using System.Globalization
 
 <EditForm EditContext="_editContext" OnSubmit="EditForm_OnSubmit" Context="EditFormContext">
-    <fieldset disabled="@_isWorking">
-        <div class="row">
-            <h3>Asset:</h3>
-            <div class="col-2">
-                <label for="inputId" class="form-label">Id</label>
-                <input class="form-control mb-3" @bind="_currentAsset.Id" disabled id="inputId"/>
-            </div>
-            <div class="col-4">
-                <label for="inputUuid" class="form-label">Uuid</label>
-                <input class="form-control mb-3" @bind="_currentAsset.Uuid" disabled id="inputUuid"/>
-            </div>
-            <div class="col-4">
-                <label for="inputCreation" class="form-label">Creation Timestamp</label>
-                <input class="form-control mb-3" @bind="_currentAsset.Creation" disabled id="inputCreation"/>
-            </div>
-            <div class="col-2">
+<fieldset disabled="@_isWorking">
+<MudPaper Class="pa-3">
+    <MudStack>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h5">Asset</MudText>
+            </MudItem>
+            <MudItem xs="2">
+                <MudField Label="Id">@_currentAsset.Id</MudField>
+            </MudItem>
+            <MudItem xs="4">
+                <MudField Label="Uuid">@_currentAsset.Uuid</MudField>
+            </MudItem>
+            <MudItem xs="4">
+                <MudField Label="Creation Timestamp">@_currentAsset.Creation</MudField>
+            </MudItem>
+            <MudItem xs="2">
                 @switch (_mode)
                 {
                     case AssetDetailMode.Show:
-                        <i class="bi bi-eye text-primary float-end h4">Display</i>
+                        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.RemoveRedEye">Showing</MudAlert>
                         break;
                     case AssetDetailMode.Edit:
-                        <i class="bi bi-pencil text-danger float-end h4">Editing</i>
+                        <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Outlined.ModeEdit">Editing</MudAlert>
                         break;
                     case AssetDetailMode.Create:
-                        <i class="bi bi-file-plus text-success float-end h4">Creation</i>
+                        <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Outlined.AddBox">Creating</MudAlert>
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-9">
-                <label for="inputAssetName" class="form-label">Name</label>
-                <InputText @bind-Value="_currentAsset.Name" class="form-control mb-3" id="inputAssetName"/>
-            </div>
-            <div class="col-3">
-                <label for="inputAssetState" class="form-label">State</label>
-                <InputSelect @bind-Value="_currentAsset.AssetStateId" class="form-select">
+            </MudItem>
+            <MudItem xs="9">
+                <MudTextField T="string" Label="Name" @bind-Value="_currentAsset.Name"></MudTextField>
+            </MudItem>
+            <MudItem xs="3">
+                <MudSelect T="int" Label="State" @bind-Value="_currentAsset.AssetStateId">
                     @foreach (var state in UserCache.AssetStates)
                     {
-                        <option value="@state.Id">@state.Name</option>
+                        <MudSelectItem Value="@state.Id">@state.Name</MudSelectItem>
                     }
-                </InputSelect>
-            </div>
-            <div class="col-6">
-                <label for="inputAssetBrand" class="form-label">Brand</label>
-                <InputText @bind-Value="_currentBrand" class="form-control mb-3" id="inputAssetBrand" list="suggestionBrand"/>
-                <datalist id="suggestionBrand">
-                    @if (_brandSuggestions != null)
-                    {
-                        foreach (var brand in _brandSuggestions)
-                        {
-                            <option value="@brand.Name"/>
-                        }
-                    }
-                </datalist>
-            </div>
-            <div class="col-6">
-                <label for="inputAssetType" class="form-label">Type</label>
-                <InputText @bind-Value="_currentAssetType" class="form-control mb-3" id="inputAssetType" list="suggestionType"/>
-                <datalist id="suggestionType">
-                    @if (_assetTypeSuggestions != null)
-                    {
-                        foreach (var type in _assetTypeSuggestions)
-                        {
-                            <option value="@type.Name"/>
-                        }
-                    }
-                </datalist>
-            </div>
-        </div>
-        <div class="row">
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6">
+                <MudAutocomplete T="string" Label="Brand" @bind-Value="_currentBrand" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" SearchFuncWithCancel="SearchBrandNames" ShowProgressIndicator="true"/>
+            </MudItem>
+            <MudItem xs="6">
+                <MudAutocomplete T="string" Label="Brand" @bind-Value="_currentAssetType" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" SearchFuncWithCancel="SearchAssetTypeNames" ShowProgressIndicator="true"/>
+            </MudItem>
+        </MudGrid>
+        <MudGrid>
             @if (_currentAsset.Device != null)
             {
-                <h4>Device Information</h4>
-                <div class="col-6">
-                    <label for="inputDeviceSerial" class="form-label">Serial-Number</label>
-                    <InputText @bind-Value="_currentAsset.Device.SerialNumber" class="form-control mb-3" id="inputDeviceSerial"/>
-                </div>
-                <div class="col-6">
-                    <label for="inputDeviceModel" class="form-label">Model-Number</label>
-                    <InputText @bind-Value="_currentAsset.Device.ModelNumber" class="form-control mb-3" id="inputDeviceModel"/>
-                </div>
-                <div class="col-12">
-                    <label for="inputDeviceDescr" class="form-label">Description</label>
-                    <InputTextArea @bind-Value="_currentAsset.Device.Description" class="form-control mb-3" id="inputDeviceDescr"/>
-                </div>
-                <div class="col-12">
-                    <button class="btn btn-danger float-end mb-3" @onclick="RemoveDeviceInformation_OnClick">Remove Device Information</button>
-                </div>
+                <MudItem xs="12">
+                    <MudDivider/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h5">Device Information</MudText>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField T="string?" @bind-Value="_currentAsset.Device.SerialNumber" Label="Serial-Number"/>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField T="string?" @bind-Value="_currentAsset.Device.ModelNumber" Label="Model-number"/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string?" @bind-Value="_currentAsset.Device.Description" Label="Description" Lines="5"/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RemoveDeviceInformation_OnClick">Remove Device Information</MudButton>
+                </MudItem>
             }
             else
             {
-                <div class="col-12">
-                    <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddDeviceInformation_OnCLick">Add Device Information</button>
-                </div>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddDeviceInformation_OnCLick">Add Device Information</MudButton>
+                </MudItem>
             }
-        </div>
-        <div class="row">
+        </MudGrid>
+        <MudGrid>
             @if (_currentAsset.Purchase != null)
             {
-                <h4>Purchase Information</h4>
-                <div class="col-4">
-                    <label for="inputPurchaseAmount" class="form-label">Amount</label>
-                    <InputNumber @bind-Value="_currentAsset.Purchase.Amount" id="inputPurchaseAmount" class="form-control mb-3" />
-                </div>
-                <div class="col-4">
-                    <label for="inputPurchaseCurrency" class="form-label">Currency</label>
-                    <InputSelect @bind-Value="_currentAsset.Purchase.CurrencyId" id="inputPurchaseCurrency" class="form-control mb-3">
+                <MudItem xs="12">
+                    <MudDivider/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h5">Purchase Information</MudText>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudNumericField T="decimal" @bind-Value="_currentAsset.Purchase.Amount" Label="Amount" Format="N2"/>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudSelect T="int" @bind-Value="_currentAsset.Purchase.CurrencyId" Label="Currency">
                         @foreach (var currency in UserCache.Currencies)
                         {
-                            <option value="@currency.Id">@currency.Name</option>
+                            <MudSelectItem Value="@currency.Id">@($"{currency.Name} ({currency.Code})")</MudSelectItem>
                         }
-                    </InputSelect>
-                </div>
-                <div class="col-4">
-                    <label for="inputPurchaseTime" class="form-label">Date</label>
-                    <InputDate @bind-Value="_currentAsset.Purchase.PurchaseTime" Type="InputDateType.Date" id="inputPurchaseTime" class="form-control mb-3" />
-                </div>
-                <div class="col-12">
-                    <button class="btn btn-danger float-end mb-3" @onclick="RemovePurchaseInformation_OnCLick">Remove Purchase Information</button>
-                </div>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudTextField T="DateTime" Format="yyyy-MM-dd" InputType="InputType.Date" @bind-Value="_currentAsset.Purchase.PurchaseTime" Label="Date"/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RemovePurchaseInformation_OnCLick">Remove Purchase Information</MudButton>
+                </MudItem>
             }
             else
             {
-                <div class="col-12">
-                    <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddPurchaseInformation_OnCLick">Add Purchase Information</button>
-                </div>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddPurchaseInformation_OnCLick">Add Purchase Information</MudButton>
+                </MudItem>
             }
-        </div>
-    <div class="row">
-        @if (_currentAsset.Media != null)
-        {
-            <h4>Media Information</h4>
-            <div class="col-9">
-                <label for="inputMediaGroupName" class="form-label">Group</label>
-                <InputText @bind-Value="_currentMediaGroup" class="form-control mb-3" id="inputMediaGroupName" list="suggestionMediaGroup"/>
-                <datalist id="suggestionMediaGroup">
-                    @if (_mediaGroups != null)
-                    {
-                        foreach (var group in _mediaGroups)
-                        {
-                            <option value="@group.Name" />
-                        }
-                    }
-                </datalist>
-            </div>
-            <div class="col-3">
-                <label for="inputMediaGroupOrder" class="form-label">Order</label>
-                <InputNumber @bind-Value="_currentAsset.Media.GroupOrder" class="form-control mb-3" id="inputMediaGroupOrder"/>
-            </div>
-            <div class="col-12">
-                <table class="table-sm caption-top">
-                    <caption>Alternative Names</caption>
-                    <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Language</th>
-                        <th></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @if (_currentAsset.Media.MediaNames is not null)
-                    {
-                        foreach (var name in _currentAsset.Media.MediaNames)
-                        {
-                            <tr>
-                                <td>
-                                    <InputText class="form-control" @bind-Value="@name.Name"/>
-                                </td>
-                                <td>
-                                    <InputSelect @bind-Value="@name.LanguageId" class="form-select">
-                                        @foreach (var language in UserCache.Languages)
-                                        {
-                                            <option value="@language.Id">@language.DisplayName</option>
-                                        }
-                                    </InputSelect>
-                                </td>
-                                <td>
-                                    <button type="button" class="btn btn-danger"><i class="bi bi-trash" @onclick="@(() => RemoveMediaName_OnClick(name))"></i></button>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    </tbody>
-                    <tfoot>
-                    <tr>
-                        <td>
-                            <InputText class="form-control" @bind-Value="_tempMediaName.Name"/>
-                        </td>
-                        <td>
-                            <InputSelect @bind-Value="_tempMediaName.LanguageId" class="form-select">
-                                @foreach (var language in UserCache.Languages)
-                                {
-                                    <option value="@language.Id">@language.DisplayName</option>
-                                }
-                            </InputSelect>
-                        </td>
-                        <td>
-                            <button type="button" class="btn btn-primary">
-                                <i class="bi bi-plus" @onclick="AddMediaName_OnClick"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    </tfoot>
-                </table>
-            </div>
-            <div class="col-12">
-                <button class="btn btn-danger float-end mb-3" @onclick="RemoveMediaInformation_OnCLick">Remove Media Information</button>
-            </div>
-        }
-        else
-        {
-            <div class="col-12">
-                <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddMediaInformation_OnCLick">Add Media Information</button>
-            </div>
-        }
-    </div>
-    <div class="row">
+        </MudGrid>
+        <MudGrid>
+            @if (_currentAsset.Media != null)
+            {
+                <MudItem xs="12">
+                    <MudDivider/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h5">Media Information</MudText>
+                </MudItem>
+                <MudItem xs="9">
+                    <MudAutocomplete T="string" Label="Group" @bind-Value="_currentMediaGroup" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" SearchFuncWithCancel="SearchMediaGroupNames" ShowProgressIndicator="true"></MudAutocomplete>
+                </MudItem>
+                <MudItem xs="3">
+                    <MudNumericField T="int?" Label="Order" @bind-Value="_currentAsset.Media.GroupOrder" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTable Items="_currentAsset.Media.MediaNames" Elevation="0" T="MediaName" Class="mb-3">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Alternative Names</MudText>
+                        </ToolBarContent>
+                        <RowTemplate>
+                            <MudTd>@context.Name</MudTd>
+                            <MudTd>@context.Language.DisplayName</MudTd>
+                            <MudTd><MudButton StartIcon="@Icons.Material.Filled.Remove" Color="Color.Warning" OnClick="@(() => RemoveMediaName_OnClick(context))"/> </MudTd>
+                        </RowTemplate>
+                        <FooterContent>
+                            <MudTh><MudTextField T="string" @bind-Value="_tempMediaName.Name"/></MudTh>
+                            <MudTh>
+                                <MudSelect T="int" @bind-Value="_tempMediaName.LanguageId">
+                                    @foreach (var lang in UserCache.Languages)
+                                    {
+                                        <MudSelectItem Value="@lang.Id">@lang.DisplayName</MudSelectItem>
+                                    }
+                                </MudSelect></MudTh>
+                            <MudTh><MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Secondary" OnClick="@(AddMediaName_OnClick)"/></MudTh>
+                        </footerContent>
+                    </MudTable>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RemoveMediaInformation_OnCLick">Remove Media Information</MudButton>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddMediaInformation_OnCLick">Add Media Information</MudButton>
+                </MudItem>
+            }
+        </MudGrid>
+    <MudGrid>
         @if (_currentAsset.Artwork != null)
         {
-            <h4>Artwork Information</h4>
-            <div class="col-3">
-                <label for="inputArtworkStage" class="form-label">Stage</label>
-                <InputSelect @bind-Value="_currentAsset.Artwork.Stage" id="inputArtworkStage" class="form-control mb-3">
-                    @foreach (var stage in Enum.GetValues<ArtworkStages>())
-                    {
-                        <option value="@stage">@Enum.GetName(stage)</option>
-                    }
-                </InputSelect>
-                <div class="form-check">
-                    <InputCheckbox id="inputArtworkAdultCheck" @bind-Value="_currentAsset.Artwork.IsAdult" class="form-check-input mb-3"/>
-                    <label for="inputArtworkAdultCheck" class="form-check-label">NSFW</label>
-                </div>
-                
-            </div>
-            <div class="col-3">
-                <label class="form-label">Artists</label>
-                <table class="table-sm with-label">
-                    <tbody>
-                    @foreach (var artist in _currentAsset.Artwork.Artists)
-                    {
-
-                        <tr>
-                            <td>@(artist.Names?.FirstOrDefault()?.Name ?? "NoName!")</td>
-                            <td><button type="button" class="btn btn-danger"><i class="bi bi-trash" @onclick="@(() => RemoveArtistName_OnClick(artist))"></i></button></td>
-                        </tr>
-                    }
-                    </tbody>
-                    <tfoot>
-                    <tr>
-                        <td><InputText class="form-control" @bind-Value="_tempArtistName" id="inputArtistName" list="inputArtistNameSuggestions"/>
-                            <datalist id="inputArtistNameSuggestions">
-                                @if (_artistNameSuggestions is not null)
-                                {
-                                    foreach (var name in _artistNameSuggestions.SelectMany(artist => artist.Names).Select(name => name.Name))
-                                    {
-                                        <option value="@name"/>
-                                    }
-                                }
-                            </datalist>
-                        </td>
-                        <td>
-                            <button type="button" class="btn btn-primary">
-                                <i class="bi bi-plus" @onclick="AddArtistName_OnClick"></i>
-                            </button></td>
-                    </tr>
-                    </tfoot>
-                </table>
-            </div>
-            <div class="col-3">
-                <label class="form-label">Characters</label>
-                <table class="table-sm with-label">
-                    <tbody>
-                    @foreach (var character in _currentAsset.Artwork.Characters)
-                    {
-
-                        <tr>
-                            <td>@(@character.Name)</td>
-                            <td><button type="button" class="btn btn-danger"><i class="bi bi-trash" @onclick="@(() => RemoveCharacter_OnClick(character.Id))"></i></button></td>
-                        </tr>
-                    }
-                    </tbody>
-                    <tfoot>
-                    <tr>
-                        <td>
-                            <InputText class="form-control" @bind-Value="_tempCharacterName" id="inputCharacterName" list="inputCharacterNameSuggestions"/>
-                            <datalist id="inputCharacterNameSuggestions">
-                                @if (_characterNameSuggestions is not null)
-                                {
-                                    foreach (var name in _characterNameSuggestions)
-                                    {
-                                        <option value="@name"/>
-                                    }
-                                }
-                            </datalist>
-                        </td>
-                        <td>
-                            <button type="button" class="btn btn-primary">
-                                <i class="bi bi-plus" @onclick="AddCharacterName_OnClick"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    </tfoot>
-                </table>
-            </div>
-            <div class="col-3">
-                @*TODO: Artwork Set here*@
-            </div>
-
-            <div class="col-12">
-                <button class="btn btn-danger float-end mb-3" @onclick="RemoveArtworkInformation_OnCLick">Remove Artwork Information</button>
-            </div>
+            <MudItem xs="12">
+                <MudDivider/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h5">Artwork Information</MudText>
+            </MudItem>
+            <MudItem xs="3">
+                <MudStack>
+                <MudText Typo="Typo.h6">General Information</MudText>
+                    <MudSelect T="ArtworkStages" @bind-Value="_currentAsset.Artwork.Stage" Label="Stage">
+                        @foreach (var stage in Enum.GetValues<ArtworkStages>())
+                        {
+                            <MudSelectItem Value="@stage">@Enum.GetName(stage)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSwitch T="bool" @bind-Checked="_currentAsset.Artwork.IsAdult" Label="NSFW" Color="Color.Error" />
+                </MudStack>
+            </MudItem>
+            <MudItem xs="3">
+                <MudTable T="ArtworkArtist" Items="_currentAsset.Artwork.Artists" Elevation="0" Class="mb-3 with-label" Dense="true">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Artists</MudText>
+                    </ToolBarContent>
+                    <RowTemplate>
+                        <MudTd>@(context.Names.FirstOrDefault()?.Name ?? "NoName!")</MudTd>
+                        <MudTd><MudButton StartIcon="@Icons.Material.Filled.Remove" Color="Color.Warning" OnClick="@(() => RemoveArtistName_OnClick(context))"/> </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudTd colspan="2"><MudText Typo="Typo.caption">No Artist</MudText></MudTd>
+                    </NoRecordsContent>
+                    <FooterContent>
+                        <MudTd><MudAutocomplete T="string" @bind-Value="_tempArtistName" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" SearchFuncWithCancel="SearchArtistNames" ShowProgressIndicator="true"></MudAutocomplete></MudTd>
+                        <MudTd><MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Secondary" OnClick="@(AddArtistName_OnClick)"/></MudTd>
+                    </FooterContent>
+                </MudTable>
+            </MudItem>
+            <MudItem xs="3">
+                <MudTable T="ArtworkCharacter" Items="_currentAsset.Artwork.Characters" Elevation="0" Class="mb-3 with-label" Dense="true">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Characters</MudText>
+                    </ToolBarContent>
+                    <RowTemplate>
+                        <MudTd>@context.Name</MudTd>
+                        <MudTd><MudButton StartIcon="@Icons.Material.Filled.Remove" Color="Color.Warning" OnClick="@(() => RemoveCharacter_OnClick(context.Id))"/> </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudTd colspan="2"><MudText Typo="Typo.caption">No Character</MudText></MudTd>
+                    </NoRecordsContent>
+                    <FooterContent>
+                        <MudTd><MudAutocomplete T="string" @bind-Value="_tempCharacterName" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" SearchFuncWithCancel="SearchCharacterNames" ShowProgressIndicator="true"></MudAutocomplete></MudTd>
+                        <MudTd><MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Secondary" OnClick="@(AddCharacterName_OnClick)"/></MudTd>
+                    </FooterContent>
+                </MudTable>
+            </MudItem>
+            <MudItem xs="3">
+                @* Artwork Set here *@
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RemoveArtworkInformation_OnCLick">Remove Artwork Information</MudButton>
+            </MudItem>
         }
         else
         {
-            <div class="col-12">
-                <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddArtworkInformation_OnCLick">Add Artwork Information</button>
-            </div>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddArtworkInformation_OnCLick">Add Artwork Information</MudButton>
+            </MudItem>
         }
-    </div>
-    <div class="row">
+    </MudGrid>
+    <MudGrid>
         @if (_currentAsset.Files != null)
         {
+            <MudItem xs="12">
+                <MudDivider/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h5">Files</MudText>
+            </MudItem>
+            <MudItem xs="12">
             <MudStack Style="Width: 100%">
-                <MudFileUpload T="IReadOnlyList<IBrowserFile>" OnFilesChanged="OnInputFilesChanged" AppendMultipleFiles Hidden="false" Class="flex-1" InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20" InputStyle="opacity:0" @ondragenter="@SetDragClass" @ondragleave="@ClearDragClass" @ondragend="@ClearDragClass" Disabled="@(_currentAsset.Id <= 0)">
-                    <ButtonTemplate Context="ButtonContext">
-                        <MudPaper Height="150px" Outlined="true" Class="@FileDragClass">
-                            <MudText Typo="Typo.h6">Drag or click to add Files </MudText>
-                            @if(_tempBrowserFiles != null) {
-                                foreach (var file in _tempBrowserFiles.Select(file => file.Name))
-                                {
-                                    <MudChip Color="Color.Dark" Text="@file" />
-                                }
+            <MudFileUpload T="IReadOnlyList<IBrowserFile>" OnFilesChanged="OnInputFilesChanged" AppendMultipleFiles Hidden="false" Class="flex-1" InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20" InputStyle="opacity:0" @ondragenter="@SetDragClass" @ondragleave="@ClearDragClass" @ondragend="@ClearDragClass" Disabled="@(_currentAsset.Id <= 0)">
+                <ButtonTemplate Context="ButtonContext">
+                    <MudPaper Height="150px" Outlined="true" Class="@FileDragClass">
+                        <MudText Typo="Typo.h6">Drag or click to add Files </MudText>
+                        @if (_tempBrowserFiles != null)
+                        {
+                            foreach (var file in _tempBrowserFiles.Select(file => file.Name))
+                            {
+                                <MudChip Color="Color.Dark" Text="@file"/>
                             }
-                        </MudPaper>
-                    </ButtonTemplate>
-                </MudFileUpload>
-                <MudToolBar DisableGutters="true" Class="gap-4">
-                    <MudButton OnClick="UploadFiles" Disabled="@(_currentAsset.Id <= 0 || _tempBrowserFiles == null || !_tempBrowserFiles.Any())" Color="Color.Primary" Variant="Variant.Filled">Upload</MudButton>
-                    <MudButton OnClick="ClearFiles" Disabled="@(_currentAsset.Id <= 0 || _tempBrowserFiles == null || !_tempBrowserFiles.Any())" Color="Color.Error" Variant="Variant.Filled">Clear</MudButton>
-                </MudToolBar>
-            </MudStack>
-            <MudTable Items="@_currentAsset.Files" T="AssetFile" FixedHeader="true" RowsPerPage="10" Height="400px" Class="mb-3">
-                <HeaderContent>
-                    <MudTh>Original Name</MudTh>
-                    <MudTh>Type</MudTh>
-                    <MudTh>Size</MudTh>
-                    <MudTh>Link</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.OriginalFileName</MudTd>
-                    <MudTd>@context.ContentType</MudTd>
-                    <MudTd>@context.Size</MudTd>
-                    <MudTd><a href="@($"{_fileStorageBaseUrl}/{context.StorageFileName}")" target="_blank">@context.StorageFileName</a></MudTd>
-                </RowTemplate>
-            </MudTable>
+                        }
+                    </MudPaper>
+                </ButtonTemplate>
+            </MudFileUpload>
+            <MudToolBar DisableGutters="true" Class="gap-4">
+                <MudButton OnClick="UploadFiles" Disabled="@(_currentAsset.Id <= 0 || _tempBrowserFiles == null || !_tempBrowserFiles.Any())" Color="Color.Primary" Variant="Variant.Filled">Upload</MudButton>
+                <MudButton OnClick="ClearFiles" Disabled="@(_currentAsset.Id <= 0 || _tempBrowserFiles == null || !_tempBrowserFiles.Any())" Color="Color.Error" Variant="Variant.Filled">Clear</MudButton>
+            </MudToolBar>
+        </MudStack>
+        <MudTable Items="@_currentAsset.Files" T="AssetFile" FixedHeader="true" RowsPerPage="10" Height="400px" Class="mb-3">
+            <HeaderContent>
+                <MudTh>Original Name</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Size</MudTh>
+                <MudTh>Link</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.OriginalFileName</MudTd>
+                <MudTd>@context.ContentType</MudTd>
+                <MudTd>@context.Size</MudTd>
+                <MudTd><a href="@($"{_fileStorageBaseUrl}/{context.StorageFileName}")" target="_blank">@context.StorageFileName</a></MudTd>
+            </RowTemplate>
+        </MudTable>
+            </MudItem>
         }
         else
         {
-            <div class="col-12">
-                <button type="button" class="btn btn-secondary float-end mb-3" @onclick="AddFileInformation_OnCLick">Add Files</button>
-            </div>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddFileInformation_OnCLick">Add Files</MudButton>
+            </MudItem>
         }
-    </div>
-    <button type="submit" class="btn btn-primary float-end">Save</button>
-    <button type="button" class="btn btn-secondary float-end me-3 mb-3" disabled="@(_mode == AssetDetailMode.Create)" @onclick="CreateNew">New</button>
-    </fieldset>
+    </MudGrid>
+    <MudGrid>
+        <MudItem xs="12">
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="CreateNew" Disabled="@(_mode == AssetDetailMode.Create)">New</MudButton>
+        </MudItem>
+    </MudGrid>
+    </MudStack>
+</MudPaper>
+</fieldset>
 </EditForm>

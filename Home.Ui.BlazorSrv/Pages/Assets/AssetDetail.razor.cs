@@ -8,6 +8,7 @@ using Smoehring.Home.Data.SqlDatabase.Const;
 using Smoehring.Home.Data.SqlDatabase.Models;
 using Smoehring.Home.Ui.BlazorSrv.Const;
 using Smoehring.Home.Ui.BlazorSrv.Data;
+using System.Threading;
 
 namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
 {
@@ -27,7 +28,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
         private ValidationMessageStore _validationMessageStore;
         private IReadOnlyList<Brand>? _brandSuggestions;
         private IReadOnlyList<AssetType>? _assetTypeSuggestions;
-        private IReadOnlyList<ArtworkCharacters>? _characterNameSuggestions;
+        private IReadOnlyList<ArtworkCharacter>? _characterNameSuggestions;
         private IReadOnlyList<ArtworkArtist>? _artistNameSuggestions;
         private IReadOnlyList<MediaGroup>? _mediaGroups;
         private IReadOnlyList<IBrowserFile>? _tempBrowserFiles;
@@ -69,7 +70,8 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
             }
             else
             {
-                currentAsset = _context.Assets
+                currentAsset = _context
+                    .Assets
                     .Include(asset => asset.AssetType)
                     .Include(asset => asset.Brand)
                     .Include(asset => asset.Media)
@@ -85,6 +87,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
                     .ThenInclude(artwork => artwork.Artists)
                     .ThenInclude(artist => artist.Names)
                     .Include(asset => asset.Files)
+                    .AsSplitQuery()
                     .FirstOrDefault(asset => asset.Uuid.Equals(Uuid));
 
                 _mode = AssetDetailMode.Edit;
@@ -199,7 +202,8 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
 
         private void AddPurchaseInformation_OnCLick()
         {
-            _currentAsset.Purchase = new Purchase() { PurchaseTime = DateTimeOffset.Now.Date, CurrencyId = UserCache.Currencies.First().Id};
+            var currency = _context.Currencies.First(currency => currency.Id == 1);
+            _currentAsset.Purchase = new Purchase() { PurchaseTime = DateTimeOffset.Now.Date, Currency = currency, CurrencyId = currency.Id};
 
         }
 
@@ -253,7 +257,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
             _currentAsset.Artwork = new Artwork()
             {
                 Stage = ArtworkStages.Backlog, Artists = new List<ArtworkArtist>(),
-                Characters = new List<ArtworkCharacters>()
+                Characters = new List<ArtworkCharacter>()
             };
         }
 
@@ -288,7 +292,7 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
             var currentCharacter = _characterNameSuggestions?.FirstOrDefault(character => character.Name.Equals(_tempCharacterName));
             if (currentCharacter is null)
             {
-                currentCharacter = new ArtworkCharacters() { Name = _tempCharacterName };
+                currentCharacter = new ArtworkCharacter() { Name = _tempCharacterName };
                 _context.Characters.Add(currentCharacter);
             }
             _currentAsset.Artwork.Characters.Add(currentCharacter);
@@ -370,6 +374,57 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages.Assets
             _tempBrowserFiles = new List<IBrowserFile>();
             ClearDragClass();
             return Task.CompletedTask;
+        }
+
+        private async Task<IEnumerable<string>> SearchBrandNames(string searchString, CancellationToken cancellationToken)
+        {
+            await using var context = await DbContextFactory.CreateDbContextAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(searchString))
+            {
+                return await context.Brands.Select(brand => brand.Name).ToListAsync(cancellationToken);
+            }
+            return await context.Brands.Where(brand => brand.Name.Contains(searchString)).Select(brand => brand.Name).ToListAsync(cancellationToken);
+        }
+
+        private async Task<IEnumerable<string>> SearchAssetTypeNames(string searchString, CancellationToken cancellationToken)
+        {
+            await using var context = await DbContextFactory.CreateDbContextAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(searchString))
+            {
+                return await context.AssetTypes.Select(assetType => assetType.Name).ToListAsync(cancellationToken);
+            }
+            return await context.AssetTypes.Where(assetType => assetType.Name.Contains(searchString)).Select(assetType => assetType.Name).ToListAsync(cancellationToken);
+        }
+
+        private async Task<IEnumerable<string>> SearchMediaGroupNames(string searchString, CancellationToken cancellationToken)
+        {
+            await using var context = await DbContextFactory.CreateDbContextAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(searchString))
+            {
+                return await context.MediaGroups.Select(group => group.Name).ToListAsync(cancellationToken);
+            }
+            return await context.MediaGroups.Where(group => group.Name.Contains(searchString)).Select(group => group.Name).ToListAsync(cancellationToken);
+        }
+
+        private async Task<IEnumerable<string>> SearchArtistNames(string searchString, CancellationToken cancellationToken)
+        {
+            await using var context = await DbContextFactory.CreateDbContextAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(searchString))
+            {
+                return await context.ArtistNames.Select(artist => artist.Name).ToListAsync(cancellationToken);
+            }
+            return await context.ArtistNames.Where(artist => artist.Name.Contains(searchString)).Select(artist => artist.Name).ToListAsync(cancellationToken); 
+
+        }
+
+        private async Task<IEnumerable<string>> SearchCharacterNames(string searchString, CancellationToken cancellationToken)
+        {
+            await using var context = await DbContextFactory.CreateDbContextAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(searchString))
+            {
+                return await context.Characters.Select(character => character.Name).ToListAsync(cancellationToken);
+            }
+            return await context.Characters.Where(character => character.Name.Contains(searchString)).Select(character => character.Name).ToListAsync(cancellationToken);
         }
     }
 }

@@ -24,7 +24,8 @@ namespace Smoehring.Home.Data.SqlDatabase
         public DbSet<AssetFile> AssetFiles { get; set; }
         public DbSet<Artwork> Artworks { get; set; }
         public DbSet<ArtworkArtist> Artists { get; set; }
-        public DbSet<ArtworkCharacters> Characters { get; set; }
+        public DbSet<ArtworkCharacter> Characters { get; set; }
+        public DbSet<ArtistName> ArtistNames { get; set; }
 
         #region Overrides of DbContext
 
@@ -138,10 +139,10 @@ namespace Smoehring.Home.Data.SqlDatabase
 
             modelBuilder.Entity<ArtistName>(builder =>
             {
-                builder.HasIndex(name => name.Name);
+                builder.HasIndex(name => name.Name).IsUnique();
             });
 
-            modelBuilder.Entity<ArtworkCharacters>(builder =>
+            modelBuilder.Entity<ArtworkCharacter>(builder =>
             {
                 builder.HasIndex(character => character.Name);
             });

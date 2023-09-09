@@ -1,6 +1,6 @@
 ﻿namespace Smoehring.Home.Data.SqlDatabase.Models;
 
-public class ArtworkCharacters
+public class ArtworkCharacter
 {
     public int Id { get; set; }
     public string Name { get; set; }

@@ -1,3 +1,11 @@
 ﻿table.with-label td {
     padding: 0 .25rem .25rem 0;
 }
+
+div.with-label
+{
+    padding: 0 .25rem .25rem 0;
+}
+    div.with-label > div.mud-table-toolbar {
+        align-items: unset !important;
+    }

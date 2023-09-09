@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Smoehring.Home.Data.SqlDatabase;
 
@@ -11,9 +12,11 @@ using Smoehring.Home.Data.SqlDatabase;
 namespace Smoehring.Home.Data.SqlDatabase.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20230905180236_ChangePurchaseDatetimeoffsetToDatetime")]
+    partial class ChangePurchaseDatetimeoffsetToDatetime
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -37,7 +40,7 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
                     b.ToTable("ArtworkArtworkArtist");
                 });
 
-            modelBuilder.Entity("ArtworkArtworkCharacter", b =>
+            modelBuilder.Entity("ArtworkArtworkCharacters", b =>
                 {
                     b.Property<int>("ArtworksId")
                         .HasColumnType("int");
@@ -49,7 +52,7 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
 
                     b.HasIndex("CharactersId");
 
-                    b.ToTable("ArtworkArtworkCharacter");
+                    b.ToTable("ArtworkArtworkCharacters");
                 });
 
             modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.ArtistName", b =>
@@ -71,10 +74,9 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
 
                     b.HasIndex("ArtworkArtistId");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
+                    b.HasIndex("Name");
 
-                    b.ToTable("ArtistNames");
+                    b.ToTable("ArtistName");
                 });
 
             modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.ArtistProfile", b =>
@@ -135,7 +137,7 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
                     b.ToTable("Artists");
                 });
 
-            modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.ArtworkCharacter", b =>
+            modelBuilder.Entity("Smoehring.Home.Data.SqlDatabase.Models.ArtworkCharacters", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -650,7 +652,7 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ArtworkArtworkCharacter", b =>
+            modelBuilder.Entity("ArtworkArtworkCharacters", b =>
                 {
                     b.HasOne("Smoehring.Home.Data.SqlDatabase.Models.Artwork", null)
                         .WithMany()
@@ -658,7 +660,7 @@ namespace Smoehring.Home.Data.SqlDatabase.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Smoehring.Home.Data.SqlDatabase.Models.ArtworkCharacter", null)
+                    b.HasOne("Smoehring.Home.Data.SqlDatabase.Models.ArtworkCharacters", null)
                         .WithMany()
                         .HasForeignKey("CharactersId")
                         .OnDelete(DeleteBehavior.Cascade)

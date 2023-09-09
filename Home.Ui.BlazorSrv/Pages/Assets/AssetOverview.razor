@@ -1,120 +1,55 @@
 ﻿@page "/Asset"
 
-<div class="row">
-    <div class="col">
-        <div>
-            <button class="btn btn-primary float-end mb-3" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/New")'><i class="bi bi-file-plus"></i>New</button>
-            <button class="btn btn-secondary float-end me-3 mb-3" type="button" @onclick='() => NavigationManager.NavigateTo("/Asset/Print")'><i class="bi bi-printer"></i>Print</button>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col"></div>
-        <MudTable ServerData="@(new Func<TableState, Task<TableData<Asset>>>(ServerReload))" OnRowClick="Table_OnRowClick" T="Asset" @ref="_table">
-            <ToolBarContent>
-                <MudText Typo="Typo.h6">Assets</MudText>
-                <MudSpacer/>
-                <MudTextField T="string" ValueChanged="@(OnSearch)" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
-            </ToolBarContent>
-            <HeaderContent>
-                <MudTh></MudTh>
-                <MudTh>
-                    <MudTableSortLabel SortLabel="@nameof(Asset.Brand)" T="Asset">Brand</MudTableSortLabel>
-                </MudTh>
-                <MudTh>
-                    <MudTableSortLabel SortLabel="@nameof(Asset.Name)" T="Asset">Name</MudTableSortLabel>
-                </MudTh>
-                <MudTh>
-                    <MudTableSortLabel SortLabel="@nameof(Asset.AssetType)" T="Asset">Type</MudTableSortLabel>
-                </MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>
-                    @if (context.MediaId is not null)
-                    {<i class="bi bi-disc"></i>}
-                    @if (context.DeviceId is not null)
-                    {<i class="bi bi-projector"></i>}
-                    @if (context.PurchaseId is not null)
-                    {<i class="bi bi-currency-euro"></i>}
-                    @if (context.Artwork is not null)
-                    {<i class="bi bi-image"></i>}
-                    @if (context.Files is not null)
-                    {
-                        <i class="bi bi-file-earmark"></i>
-                    }
-                </MudTd>
-                <MudTd>@context.Brand?.Name</MudTd>
-                <MudTd>@context.Name</MudTd>
-                <MudTd>@context.AssetType?.Name</MudTd>
-            </RowTemplate>
-            <NoRecordsContent>
-                <MudText>Nothing to show.</MudText>
-            </NoRecordsContent>
-            <LoadingContent>
-                <MudText>Loading...</MudText>
-            </LoadingContent>
-            <PagerContent>
-                <MudTablePager ShowEntriesPerPage="true" ShowFirstLastButtons="true"/>
-            </PagerContent>
-        </MudTable>
-    </div>
-</div>
-        @* @if (_assets != null)
-        {
-            <EditForm EditContext="_editContext">
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th></th>
-                        <th></th>
-                        <th>Brand</th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @if (!_assets.Any())
-                    {
-                        <tr>
-                            <td colspan="6">
-                                <em>Nothing to show.</em>
-                            </td>
-                        </tr>
-                    }
-                    else
-                    {
-                        foreach (var asset in _assets)
-                        {
-                            <tr>
-                                <td>
-                                    @if (asset.MediaId is not null)
-                                    {<i class="bi bi-disc"></i>}
-                                    @if (asset.DeviceId is not null)
-                                    {<i class="bi bi-projector"></i>}
-                                    @if (asset.PurchaseId is not null)
-                                    {<i class="bi bi-currency-euro"></i>}
-                                </td>
-                                <td>
-                                    <InputCheckbox @bind-Value="asset.IsSelected" class="form-check-input"/>
-                                </td>
-                                <td>@asset.Brand?.Name</td>
-                                <td>
-                                    @asset.Name
-                                </td>
-                                <td>@asset.AssetType?.Name</td>
-                                <td>
-                                    <a href="@($"/Asset/{asset.Uuid:N}")">Show</a>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    </tbody>
-                </table> *@
-        @*             </EditForm>
-        }
-        else
-        {
-            <div class="spinner-border-sm text-primary">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        } *@
+<MudStack>
+    <MudPaper Outlined="false" Elevation="0" Class="pa-4 d-flex justify-end flex-grow-1 gap-4">
+        <MudFab Icon="@Icons.Material.Filled.Add" Color="Color.Primary" @onclick="@(e => NavigationManager.NavigateTo("/Asset/New"))"/>
+        <MudFab Icon="@Icons.Material.Filled.Print" Color="Color.Primary" @onclick="@(e => NavigationManager.NavigateTo("/Asset/Print"))"/>
+    </MudPaper>
+    <MudTable ServerData="@(new Func<TableState, Task<TableData<Asset>>>(ServerReload))" OnRowClick="Table_OnRowClick" T="Asset" @ref="_table">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Assets</MudText>
+            <MudSpacer/>
+            <MudTextField T="string" ValueChanged="@(OnSearch)" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"/>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh></MudTh>
+            <MudTh>
+                <MudTableSortLabel SortLabel="@nameof(Asset.Brand)" T="Asset">Brand</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortLabel="@nameof(Asset.Name)" T="Asset">Name</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortLabel="@nameof(Asset.AssetType)" T="Asset">Type</MudTableSortLabel>
+            </MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd Class="cursor-pointer">
+                @if (context.MediaId is not null)
+                {<i class="bi bi-disc"></i>}
+                @if (context.DeviceId is not null)
+                {<i class="bi bi-projector"></i>}
+                @if (context.PurchaseId is not null)
+                {<i class="bi bi-currency-euro"></i>}
+                @if (context.Artwork is not null)
+                {<i class="bi bi-image"></i>}
+                @if (context.Files is not null)
+                {
+                    <i class="bi bi-file-earmark"></i>
+                }
+            </MudTd>
+            <MudTd Class="cursor-pointer">@context.Brand?.Name</MudTd>
+            <MudTd Class="cursor-pointer">@context.Name</MudTd>
+            <MudTd Class="cursor-pointer">@context.AssetType?.Name</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>Nothing to show.</MudText>
+        </NoRecordsContent>
+        <LoadingContent>
+            <MudText>Loading...</MudText>
+        </LoadingContent>
+        <PagerContent>
+            <MudTablePager ShowEntriesPerPage="true" ShowFirstLastButtons="true"/>
+        </PagerContent>
+    </MudTable>
+</MudStack>
