@@ -1,53 +1,73 @@
 ﻿@page "/"
 
-<div class="row justify-content-center">
-    <div class="col">
-        @if (_isDatabaseWakingUp && !_isDatabaseAvailable)
-        {
-            <div class="alert alert-warning d-flex align-items-center" role="alert">
-                <i class="bi bi-database-fill-exclamation"> The Database is apparently hibernating, please be patient while the startup process is running.</i>
-            </div>
-        }
-        @if (_isDatabaseWakingUp && _isDatabaseAvailable)
-        {
-            <div class="alert alert-success d-flex align-items-center" role="alert">
-                <i class="bi bi-database-fill-check"> The Database is now available.</i>
-            </div>
-        }
-        <table class="table">
-            <thead>
-            <tr>
-                <th>Assets</th>
-                <th>Recipes</th>
-                <th>Artworks</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td>
-                    <h3>@if (_values == null)
-                        {
-                            <span class="spinner-border" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </span>
-                        }
-                        else
-                        {
-                            <span>@_values[nameof(Asset)]</span>
-                        }
-                    </h3>
-                </td>
-                <td>
-                    <h3>-</h3>
-                </td>
-                <td>
-                    <h3>-</h3>
-                </td>
-            </tr>
-            </tbody>
-        </table>
+<MudGrid Class="mt-3">
+    <MudItem xs="3">
+        <MudCard>
+            <MudCardHeader>
+                <MudText Typo="Typo.h4">Assets</MudText>
+            </MudCardHeader>
+            <MudCardContent>
+                @if(_values == null)
+                {
+                    <MudProgressCircular Size="Size.Medium" Indeterminate="true" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.h5">@_values[nameof(Asset)]</MudText>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper>
+            <MudCardHeader>
+                <MudText Typo="Typo.h4">Media</MudText>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_values == null)
+                {
+                    <MudProgressCircular Size="Size.Medium" Indeterminate="true"/>
+                }
+                else
+                {
+                    <MudText Typo="Typo.h5">@_values[nameof(Asset)]</MudText>
+                }
+            </MudCardContent>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper>
+            <MudCardHeader>
+                <MudText Typo="Typo.h4">Recipes</MudText>
+            </MudCardHeader>
+            <MudCardContent>
+            @if (_values == null)
+            {
+                <MudProgressCircular Size="Size.Medium" Indeterminate="true"/>
+            }
+            else
+            {
+                <MudText Typo="Typo.h5">n/a</MudText>
+            }
+            </MudCardContent>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper>
+            <MudCardHeader>
+                <MudText Typo="Typo.h4">Artworks</MudText>
+            </MudCardHeader>
+            <MudCardContent>
+            @if (_values == null)
+            {
+                <MudProgressCircular Size="Size.Medium" Indeterminate="true"/>
+            }
+            else
+            {
+                <MudText Typo="Typo.h5">@_values[nameof(Artwork)]</MudText>
+            }
+            </MudCardContent>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
 
-    </div>
-</div>
-
-<GitGraph />

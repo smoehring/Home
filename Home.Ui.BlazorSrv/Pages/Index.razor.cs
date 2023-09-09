@@ -39,7 +39,8 @@ namespace Smoehring.Home.Ui.BlazorSrv.Pages
             _values = new Dictionary<string, int>
             {
                 { nameof(Asset), await context.Assets.CountAsync() },
-                //{ nameof(Media), await context.Mediae.CountAsync() },
+                { nameof(Media), await context.Mediae.CountAsync() },
+                { nameof(Artwork), await context.Artworks.CountAsync() },
                 //{ nameof(Device), await context.Devices.CountAsync() },
                 //{ nameof(Purchase), await context.Purchases.CountAsync() }
             };

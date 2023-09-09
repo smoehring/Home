@@ -3,10 +3,6 @@
   "defaultProvider": "cdnjs",
   "libraries": [
     {
-      "library": "twitter-bootstrap@5.2.3",
-      "destination": "wwwroot/twitter-bootstrap/"
-    },
-    {
       "library": "bootstrap-icons@1.10.3",
       "destination": "wwwroot/bootstrap-icons/"
     }
