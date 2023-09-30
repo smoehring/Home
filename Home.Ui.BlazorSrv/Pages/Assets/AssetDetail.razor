@@ -65,13 +65,13 @@
                     <MudText Typo="Typo.h5">Device Information</MudText>
                 </MudItem>
                 <MudItem xs="6">
-                    <MudTextField T="string?" @bind-Value="_currentAsset.Device.SerialNumber" Label="Serial-Number"/>
+                    <MudTextField @bind-Value="_currentAsset.Device.SerialNumber" Label="Serial-Number"/>
                 </MudItem>
                 <MudItem xs="6">
-                    <MudTextField T="string?" @bind-Value="_currentAsset.Device.ModelNumber" Label="Model-number"/>
+                    <MudTextField  @bind-Value="_currentAsset.Device.ModelNumber" Label="Model-number"/>
                 </MudItem>
                 <MudItem xs="12">
-                    <MudTextField T="string?" @bind-Value="_currentAsset.Device.Description" Label="Description" Lines="5"/>
+                    <MudTextField  @bind-Value="_currentAsset.Device.Description" Label="Description" Lines="5"/>
                 </MudItem>
                 <MudItem xs="12">
                     <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RemoveDeviceInformation_OnClick">Remove Device Information</MudButton>
