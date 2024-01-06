@@ -9,6 +9,7 @@ using Serilog;
 using Smoehring.Home.Data.SqlDatabase;
 using Smoehring.Home.Ui.BlazorSrv.Data;
 using Microsoft.Extensions.Azure;
+using Smoehring.Home.Ui.BlazorSrv;
 
 Log.Logger = new LoggerConfiguration()
     .CreateBootstrapLogger();
@@ -50,7 +51,8 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<DatabaseContext>("Sql Server", HealthStatus.Unhealthy);
 
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor()
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents()
     .AddMicrosoftIdentityConsentHandler();
 builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddMudServices();
@@ -75,7 +77,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
+app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -89,7 +91,7 @@ app.UseHealthChecks("/health", new HealthCheckOptions()
         { HealthStatus.Unhealthy, StatusCodes.Status503ServiceUnavailable }
     }
 });
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
 
 app.Run();

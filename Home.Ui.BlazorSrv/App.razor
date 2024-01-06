@@ -1,14 +1,38 @@
-﻿<CascadingAuthenticationState>
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <PageTitle>Not found</PageTitle>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
-</CascadingAuthenticationState>
+﻿@inject IHostEnvironment Env
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+  + <base href="/" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    @*     <link href="twitter-bootstrap/css/bootstrap.min.css" rel="stylesheet" /> *@
+    <link href="bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet"/>
+    <link href="css/site.css" rel="stylesheet" />
+    <link href="Smoehring.Home.Ui.BlazorSrv.styles.css" rel="stylesheet" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+<Routes @rendermode="InteractiveServer" />
+
+<div id="blazor-error-ui">
+@if (Env.IsDevelopment())
+{
+    <text>
+        An unhandled exception has occurred. See browser dev tools for details.
+    </text>
+}
+else
+{
+    <text>
+        An error has occurred. This app may no longer respond until reloaded.
+    </text>
+}
+</div>
+    
+
+
+<script src="_framework/blazor.web.js"></script>
+<script src="_content/MudBlazor/MudBlazor.min.js"></script>
+</body>
+</html>
