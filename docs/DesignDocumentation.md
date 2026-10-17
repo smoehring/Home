@@ -68,7 +68,7 @@ Key characteristics:
 | # | Finding | Impact |
 |---|---|---|
 | 1 | SQL-Server specific SQL in model: `NewId()`, `GetDate()` | Not portable to PostgreSQL |
-| 2 | Migrations are SQL Server–specific and 8 + migrations generated against it | Must be re-baselined |
+| 2 | Migrations are SQL Server–specific (all generated against SQL Server) | Must be re-baselined |
 | 3 | Azure-coupled: Azure AD auth, Blob/Queue clients, Application Insights, Azure Web App deployment | Cannot run on k3s unchanged |
 | 4 | Blob container created with `PublicAccessType.Blob`; files addressed by an unguessable name but publicly readable | Insurance proofs (invoices, serials) should be private |
 | 5 | `MigrateDatabase()` runs on every app start | Races with multiple replicas; hides failures |
