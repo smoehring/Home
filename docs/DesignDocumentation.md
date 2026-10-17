@@ -69,7 +69,7 @@ Key characteristics:
 |---|---|---|
 | 1 | SQL-Server specific SQL in model: `NewId()`, `GetDate()` | Not portable to PostgreSQL |
 | 2 | Migrations are SQL Server–specific (all generated against SQL Server) | Must be re-baselined |
-| 3 | Azure-coupled: Azure AD auth, Blob/Queue clients, Application Insights, Azure Web App deployment | Cannot run on k3s unchanged |
+| 3 | Azure-coupled: Blob/Queue clients, Application Insights, Azure Web App deployment (Azure AD auth is kept) | Cannot run on k3s unchanged |
 | 4 | Blob container created with `PublicAccessType.Blob`; files addressed by an unguessable name but publicly readable | Insurance proofs (invoices, serials) should be private |
 | 5 | `MigrateDatabase()` runs on every app start | Races with multiple replicas; hides failures |
 | 6 | Upload limit 1 GiB per file via Blazor circuit | Memory/SignalR pressure; needs streaming/limits |
@@ -86,7 +86,7 @@ Key characteristics:
 
 - Keep it a **modular monolith**: one deployable web app, one database. No microservices.
 - Keep Blazor (Interactive Server) – minimal change for an existing app; revisit Blazor Web App auto mode only if needed.
-- Cloud-neutral: nothing depends on Azure-only services.
+- **Azure Entra ID is the only retained Azure dependency (identity provider only).** All other Azure infrastructure (Blob/Queue Storage, Application Insights, Azure Web App hosting, Azure SQL/SQL Server) is removed.
 - 12-factor configuration (environment variables / mounted secrets).
 - Infrastructure described as code (Kubernetes manifests / Helm chart kept in repo).
 
@@ -132,12 +132,12 @@ Migration path: the existing `Home.Data.SqlDatabase` becomes `Home.Infrastructur
 | UI | Blazor Server + MudBlazor 6 | Blazor Server + latest MudBlazor compatible with .NET 10 | Minimal rewrite; MudBlazor 6 → 7/8 has breaking API changes (dialogs, `MudTable` etc.) |
 | ORM | EF Core 8 SqlServer | EF Core 10 + `Npgsql.EntityFrameworkCore.PostgreSQL` | PostgreSQL requirement |
 | DB | SQL Server | PostgreSQL 16+ | Requirement |
-| Files | Azure Blob | `IFileStore` abstraction; default implementation on S3-compatible storage (MinIO / Garage) or a PVC (local-path / Longhorn) | No cloud dependency; private by default |
-| Queue | Azure Queue client registered (unused) | Remove | YAGNI; use `Channel<T>`/`BackgroundService` if needed |
-| Auth | Azure AD (Microsoft.Identity.Web) | Generic OIDC (`AddOpenIdConnect`) against e.g. Authentik/Keycloak/Entra; cookie session | Cloud-neutral; household users only |
-| Logging | Serilog + App Insights | Serilog console (JSON) + OpenTelemetry traces/metrics | Works with k3s + Grafana/Loki |
+| Files | Azure Blob (**removed**) | `IFileStore` abstraction; default implementation on S3-compatible storage (MinIO / Garage) or a PVC (local-path / Longhorn) | No cloud dependency; private by default |
+| Queue | Azure Queue client registered (unused) | Remove | Azure removal; YAGNI; use `Channel<T>`/`BackgroundService` if needed |
+| Auth | Azure AD (Microsoft.Identity.Web) | **Azure Entra ID stays** (OIDC via `Microsoft.Identity.Web`, updated to a .NET 10 compatible version); cookie session | Decision: Entra ID is retained; no other Azure service is used |
+| Logging | Serilog + App Insights (**removed**) | Serilog console (JSON) + OpenTelemetry traces/metrics | Works with k3s + Grafana/Loki |
 | Health | `/health` with DbContext check | `/health/live`, `/health/ready` | k8s probes |
-| CI/CD | GitHub Actions → Azure Web App | GitHub Actions → build, test, push image to GHCR → Argo CD/Flux or `kubectl apply` | |
+| CI/CD | GitHub Actions → Azure Web App (**removed**) | GitHub Actions → build, test, push image to GHCR → Argo CD/Flux or `kubectl apply` | |
 
 ## 4. Data design
 
@@ -273,7 +273,7 @@ interface IFileStore {
 ## 6. Security
 
 - All routes require authentication (existing fallback policy kept). Authorization: a single `Household` role/claim; optional `Admin` for destructive operations.
-- OIDC with PKCE, `SameSite=Lax` cookies, `Secure`, data-protection keys persisted (see 7.5) so sessions survive pod restarts.
+- Entra ID sign-in (OIDC, code flow with PKCE) with the single-tenant app registration; redirect URI is the public k3s ingress URL (`/signin-oidc`), `SameSite=Lax` cookies, `Secure`, data-protection keys persisted (see 7.5) so sessions survive pod restarts.
 - Forward headers configured (`UseForwardedHeaders`) since TLS terminates at the ingress; HSTS and HTTPS redirect only at ingress level.
 - Secrets only from Kubernetes Secrets (ideally sealed-secrets / SOPS); no secrets in git, remove the committed ids from csproj/appsettings.
 - Containers: non-root user, read-only root filesystem, dropped capabilities, `seccompProfile: RuntimeDefault`.
@@ -323,7 +323,7 @@ Database__AutoMigrate=false
 Storage__Provider=S3|Local
 Storage__S3__ServiceUrl, Storage__S3__Bucket, Storage__S3__AccessKey, Storage__S3__SecretKey
 Storage__Local__Path=/data/files
-Oidc__Authority, Oidc__ClientId, Oidc__ClientSecret
+AzureAd__Instance, AzureAd__TenantId, AzureAd__ClientId, AzureAd__ClientSecret (Entra ID only)
 OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
 ```
@@ -349,6 +349,22 @@ ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
 - Files: nightly sync to off-site storage; invoices and photos are insurance evidence, so off-site copy is required.
 - Document RPO 24 h / RTO 4 h.
 
+### 3.5 Azure removal checklist
+
+Retained: Microsoft Entra ID (authentication only).
+
+Removed, with the replacement:
+
+| Azure item (where) | Replacement |
+|---|---|
+| `Azure.Storage.Blobs`, `Azure.Storage.Files.Shares`, `Azure.Storage.Queues`, `Microsoft.Extensions.Azure`, `AzureClientFactoryBuilderExtensions.cs`, `AddAzureClients` in `Program.cs`, `BlobServiceClient` in `AssetDetail.razor.cs` | `IFileStore` (S3-compatible or PVC), see 5.1 |
+| `ConnectionStrings:AzureStorage` | `Storage__*` settings |
+| `Microsoft.ApplicationInsights.AspNetCore`, `Serilog.Sinks.ApplicationInsights`, `ApplicationInsights` section, `ApplicationInsightsResourceId` in csproj, `AddApplicationInsightsTelemetry` | Serilog console + OpenTelemetry |
+| `Properties/ServiceDependencies/*`, `serviceDependencies*.json` (Azure storage ARM template) | Delete |
+| `.github/workflows/homesnovalde.yml` (Azure Web App deploy, `publish-profile` secret) | Image build/push + k3s deployment (7.6) |
+| SQL Server (`Microsoft.EntityFrameworkCore.SqlServer`) | PostgreSQL / Npgsql |
+| Existing Azure data (SQL database, blob container) | One-off migration (phase 3/4), then decommission the Azure resources |
+
 ## 8. Migration plan
 
 | Phase | Deliverables |
@@ -358,14 +374,14 @@ ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
 | 2. PostgreSQL | Npgsql provider, replace `NewId()/GetDate()` (`gen_random_uuid()`, `now()` or client-side defaults), naming convention, new `Initial` migration, `Purchase.PurchaseTime` → `DateOnly` |
 | 3. Data migration | One-off ETL tool (SQL Server → PostgreSQL): copy lookup tables, then assets/devices/purchases/media/artwork keeping ids and uuids; reset identity sequences (`setval`) afterwards; row-count and checksum verification |
 | 4. Storage | `IFileStore`, S3/Local implementations, blob copy tool, private file endpoint, remove Azure SDKs |
-| 5. Auth | Generic OIDC replacing Microsoft.Identity.Web |
+| 5. Auth | Keep Entra ID / Microsoft.Identity.Web; update the package, set the redirect URI for the k3s ingress, load settings from Kubernetes Secret/ConfigMap |
 | 6. Containerisation | Dockerfile, k8s manifests/Helm chart, health endpoints, OpenTelemetry, migration job, backups |
 | 7. Insurance features | Valuation, state history, file kinds, insurance report export |
 | 8. Artwork manager | Schema additions, services, pages (4.4) |
 | 9. Recipes | Schema, scheduler domain logic, Gantt component, iterations UI (4.5) |
 | 10. Hardening | Load/soak test, security review, documentation, cut-over |
 
-Cut-over: freeze writes on the old app → run ETL → verify → switch DNS/ingress → keep Azure resources read-only for 30 days → decommission.
+Cut-over (Azure resources other than the Entra ID app registration are decommissioned afterwards): freeze writes on the old app → run ETL → verify → switch DNS/ingress → keep Azure resources read-only for 30 days → decommission.
 
 Rollback: until decommissioning, the old SQL Server database and blob container stay untouched.
 
@@ -385,7 +401,7 @@ Rollback: until decommissioning, the old SQL Server database and blob container 
 | MudBlazor major-version breaking changes | Upgrade in an isolated phase; keep UI unchanged first |
 | SQL Server → PostgreSQL data differences (collation/case-sensitivity, datetime types) | `citext`/lower indexes; ETL verification; keep uuids |
 | Single replica limits availability | Acceptable for home use; S3 storage + CNPG leaves the door open to scale |
-| Identity provider choice | Open: Entra ID (keep), or self-hosted (Authentik/Keycloak). Design is IdP-agnostic |
+| Identity provider | Decided: Entra ID stays. The cluster needs outbound HTTPS to `login.microsoftonline.com`; login is unavailable if Entra is unreachable |
 | File storage choice (PVC vs. S3) | Open: default to S3-compatible (Garage/MinIO) if the cluster has >1 node, else PVC |
 | Adult content handling and legal/privacy | Default hidden, never in exports unless chosen |
 | Scope creep of unfinished features | Deliver in phases; insurance and media library stay the priority |
