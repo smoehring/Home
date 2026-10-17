@@ -1,0 +1,76 @@
+@page "/artworks/{Uuid:guid}"
+@inject ArtworkService Artworks
+@inject LookupService Lookups
+@rendermode InteractiveServer
+
+<PageTitle>Artwork</PageTitle>
+@if (_error is not null) { <div class="alert alert-danger">@_error</div> }
+@if (_item is null) { <p>Loading…</p> }
+else
+{
+    <h1>@_item.Title</h1>
+    <p>Stage: <strong>@_item.Stage</strong> · Artists: @string.Join(", ", _item.Artists) · Characters: @string.Join(", ", _item.Characters)</p>
+
+    <h2 class="h5">Change stage</h2>
+    <div class="d-flex gap-2 mb-3">
+        <select class="form-select w-auto" @bind="_stage">
+            @foreach (var s in Enum.GetValues<ArtworkStage>()) { <option value="@s">@s</option> }
+        </select>
+        <button class="btn btn-secondary" @onclick="ChangeStage">Apply</button>
+    </div>
+
+    <h2 class="h5">Add version</h2>
+    <div class="d-flex gap-2 mb-3">
+        <input class="form-control w-auto" placeholder="Label (e.g. Alt outfit)" @bind="_label" />
+        <div class="form-check align-self-center"><input id="prim" type="checkbox" class="form-check-input" @bind="_primary" /><label for="prim" class="form-check-label">Primary</label></div>
+        <button class="btn btn-secondary" @onclick="AddVersion">Add</button>
+    </div>
+
+    <h2 class="h5">Payments</h2>
+    @foreach (var t in _totals) { <p>Total paid: @t.Value.ToString("N2") @t.Key</p> }
+    <div class="d-flex gap-2 mb-3">
+        <input type="number" step="0.01" class="form-control w-auto" @bind="_amount" />
+        <select class="form-select w-auto" @bind="_currencyId">
+            @foreach (var c in _currencies) { <option value="@c.Id">@c.Code</option> }
+        </select>
+        <select class="form-select w-auto" @bind="_kind">
+            @foreach (var k in Enum.GetValues<PaymentKind>()) { <option value="@k">@k</option> }
+        </select>
+        <button class="btn btn-secondary" @onclick="AddPayment">Add payment</button>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Uuid { get; set; }
+
+    private ArtworkListItem? _item;
+    private IReadOnlyList<Currency> _currencies = [];
+    private IReadOnlyDictionary<string, decimal> _totals = new Dictionary<string, decimal>();
+    private ArtworkStage _stage;
+    private string _label = "", _error = null!;
+    private bool _primary;
+    private decimal _amount;
+    private int _currencyId = 1;
+    private PaymentKind _kind;
+
+    protected override async Task OnInitializedAsync() { _currencies = await Lookups.CurrenciesAsync(); await Reload(); }
+
+    private async Task Reload()
+    {
+        var page = await Artworks.ListAsync(new ArtworkFilter(IncludeAdult: true, PageSize: 200));
+        _item = page.Items.FirstOrDefault(a => a.Uuid == Uuid);
+        if (_item is not null) _stage = _item.Stage;
+        _totals = await Artworks.TotalPaidAsync(Uuid);
+    }
+
+    private Task ChangeStage() => Run(() => Artworks.ChangeStageAsync(Uuid, _stage, null));
+    private Task AddVersion() => Run(() => Artworks.AddVersionAsync(Uuid, _label, _primary, null));
+    private Task AddPayment() => Run(() => Artworks.AddPaymentAsync(new AddPaymentCommand(Uuid, _amount, _currencyId, DateOnly.FromDateTime(DateTime.Today), _kind, PaymentMethod.Other, null, null)));
+
+    private async Task Run(Func<Task> action)
+    {
+        _error = null!;
+        try { await action(); await Reload(); }
+        catch (Exception ex) when (ex is DomainException or NotFoundException) { _error = ex.Message; }
+    }
+}

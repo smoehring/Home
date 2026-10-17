@@ -1,0 +1,52 @@
+@page "/recipes/{Uuid:guid}"
+@inject RecipeService Recipes
+@rendermode InteractiveServer
+
+<PageTitle>Recipe</PageTitle>
+@if (_error is not null) { <div class="alert alert-danger">@_error</div> }
+<h1>Recipe</h1>
+
+@if (_plan is not null)
+{
+    <p>Iteration @_plan.Number · total @_plan.Total.ToString(@"hh\:mm")</p>
+    <GanttChart Rows="_plan.Rows" />
+}
+
+<h2 class="h5 mt-4">Steps (one per line: <code>name | minutes | active|wait | depends-on line numbers, comma separated</code>)</h2>
+<textarea class="form-control" rows="8" @bind="_text"></textarea>
+<div class="d-flex gap-2 mt-2">
+    <button class="btn btn-primary" @onclick="Save">Save steps</button>
+    <button class="btn btn-secondary" @onclick="NewIteration">New iteration</button>
+</div>
+
+@code {
+    [Parameter] public Guid Uuid { get; set; }
+    private IterationPlan? _plan;
+    private string _text = "", _error = null!;
+
+    protected override Task OnInitializedAsync() => Reload();
+
+    private async Task Reload()
+    {
+        _plan = await Recipes.PlanAsync(Uuid, null);
+        if (_plan is not null) _text = string.Join('\n', _plan.Rows.Select(r => $"{r.Name} | {(int)(r.End - r.Start).TotalMinutes} | {(r.IsActiveWork ? "active" : "wait")} | "));
+    }
+
+    private async Task Save()
+    {
+        _error = null!;
+        try
+        {
+            await Recipes.SetStepsAsync(Uuid, StepParser.Parse(_text));
+            await Reload();
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException or FormatException) { _error = ex.Message; }
+    }
+
+    private async Task NewIteration()
+    {
+        _error = null!;
+        try { await Recipes.NewIterationAsync(Uuid, null); await Reload(); }
+        catch (Exception ex) when (ex is DomainException or NotFoundException) { _error = ex.Message; }
+    }
+}

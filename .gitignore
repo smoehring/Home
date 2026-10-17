@@ -369,3 +369,6 @@ FodyWeavers.xsd
 /Home.Ui.BlazorSrv/Properties/ServiceDependencies/homesnovalde - Zip Deploy/profile.arm.json
 /Home.Ui.BlazorSrv/Properties/ServiceDependencies/local/appInsights1.arm.json
 /Home.Ui.BlazorSrv/Properties/serviceDependencies.local.json
+
+# Local development data
+src/Home.Web/data/

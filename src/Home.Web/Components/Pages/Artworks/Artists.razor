@@ -1,0 +1,30 @@
+@page "/artworks/artists"
+@inject ArtworkService Artworks
+@rendermode InteractiveServer
+
+<PageTitle>Artists</PageTitle>
+<h1>Artists</h1>
+@if (_error is not null) { <div class="alert alert-danger">@_error</div> }
+<div class="d-flex gap-2 mb-3">
+    <input class="form-control w-auto" placeholder="Name" @bind="_name" />
+    <input class="form-control w-auto" placeholder="Profile URL" @bind="_url" />
+    <button class="btn btn-primary" @onclick="Add">Add</button>
+</div>
+<ul>
+@foreach (var a in _artists)
+{
+    <li>@a.DisplayName @foreach (var p in a.Profiles) { <a href="@p.Url" target="_blank" rel="noopener noreferrer">[@p.Type]</a> }</li>
+}
+</ul>
+
+@code {
+    private IReadOnlyList<Artist> _artists = [];
+    private string _name = "", _url = "", _error = null!;
+    protected override async Task OnInitializedAsync() => _artists = await Artworks.ArtistsAsync();
+    private async Task Add()
+    {
+        _error = null!;
+        try { await Artworks.CreateArtistAsync(_name, _url); _name = _url = ""; _artists = await Artworks.ArtistsAsync(); }
+        catch (DomainException ex) { _error = ex.Message; }
+    }
+}

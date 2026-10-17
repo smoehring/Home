@@ -1,0 +1,28 @@
+@page "/"
+@inject AssetService AssetSvc
+@inject ArtworkService Artworks
+@inject RecipeService Recipes
+
+<PageTitle>Home</PageTitle>
+<h1>Dashboard</h1>
+@if (_loaded)
+{
+    <div class="row">
+        <div class="col-md-4"><div class="card p-3"><h2>@_assets</h2><a href="assets">Assets</a></div></div>
+        <div class="col-md-4"><div class="card p-3"><h2>@_artworks</h2><a href="artworks">Artworks</a></div></div>
+        <div class="col-md-4"><div class="card p-3"><h2>@_recipes</h2><a href="recipes">Recipes</a></div></div>
+    </div>
+}
+
+@code {
+    private bool _loaded;
+    private int _assets, _artworks, _recipes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _assets = (await AssetSvc.SearchAsync(new AssetQuery(PageSize: 1))).TotalCount;
+        _artworks = (await Artworks.ListAsync(new ArtworkFilter(PageSize: 1))).TotalCount;
+        _recipes = (await Recipes.ListAsync()).Count;
+        _loaded = true;
+    }
+}

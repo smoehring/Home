@@ -1,0 +1,19 @@
+# Run before (re)deploying the web app. Image built from the `bundle` stage of deploy/docker/Dockerfile.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: home-migrate
+  namespace: home
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: ghcr.io/smoehring/home-migrate:latest
+          args: ["--connection", "$(CONNECTION)"]
+          env:
+            - name: CONNECTION
+              valueFrom: { secretKeyRef: { name: home-secrets, key: ConnectionStrings__Postgres } }

@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: postgres-only-from-home, namespace: home }
+spec:
+  podSelector: { matchLabels: { app: home-pg } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: { matchLabels: { app: home-web } }
+        - podSelector: { matchLabels: { job-name: home-migrate } }
+      ports: [{ port: 5432 }]

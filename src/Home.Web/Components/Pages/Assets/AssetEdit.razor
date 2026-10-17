@@ -1,0 +1,138 @@
+@page "/assets/new"
+@page "/assets/{Uuid:guid}"
+@inject AssetService AssetSvc
+@inject LookupService Lookups
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Asset</PageTitle>
+<h1>@(Uuid is null ? "New asset" : _model.Name)</h1>
+
+@if (_error is not null) { <div class="alert alert-danger">@_error</div> }
+@if (_details?.MissingRequiredSerialNumber == true) { <div class="alert alert-warning">This asset type requires a serial number for insurance purposes.</div> }
+
+@if (_ready)
+{
+    <EditForm Model="_model" OnValidSubmit="Save" FormName="asset">
+        <DataAnnotationsValidator />
+        <div class="row g-2">
+            <div class="col-md-6"><label class="form-label">Name</label><InputText class="form-control" @bind-Value="_model.Name" /></div>
+            <div class="col-md-3"><label class="form-label">Brand</label><InputText class="form-control" @bind-Value="_model.Brand" /></div>
+            <div class="col-md-3"><label class="form-label">Type</label><InputText class="form-control" @bind-Value="_model.Type" /></div>
+            <div class="col-md-4"><label class="form-label">Serial number</label><InputText class="form-control" @bind-Value="_model.SerialNumber" /></div>
+            <div class="col-md-4"><label class="form-label">Model number</label><InputText class="form-control" @bind-Value="_model.ModelNumber" /></div>
+            <div class="col-md-4"><label class="form-label">Location</label><InputText class="form-control" @bind-Value="_model.Location" /></div>
+            <div class="col-md-3"><label class="form-label">Purchase date</label><InputDate class="form-control" @bind-Value="_model.PurchaseDate" /></div>
+            <div class="col-md-3"><label class="form-label">Amount</label><InputNumber class="form-control" @bind-Value="_model.PurchaseAmount" /></div>
+            <div class="col-md-3"><label class="form-label">Currency</label>
+                <InputSelect class="form-control" @bind-Value="_model.PurchaseCurrencyId">
+                    <option value="">-</option>
+                    @foreach (var c in _currencies) { <option value="@c.Id">@c.Code</option> }
+                </InputSelect></div>
+            <div class="col-md-3"><label class="form-label">Vendor</label><InputText class="form-control" @bind-Value="_model.Vendor" /></div>
+            <div class="col-12"><label class="form-label">Notes</label><InputTextArea class="form-control" @bind-Value="_model.Notes" /></div>
+        </div>
+        <button class="btn btn-primary mt-3" type="submit">Save</button>
+    </EditForm>
+
+    @if (_details is not null)
+    {
+        <h2 class="mt-4">State: @_details.State</h2>
+        <div class="d-flex gap-2">
+            <select class="form-select w-auto" @bind="_newState">
+                @foreach (var s in _states) { <option value="@s.Id">@s.Name</option> }
+            </select>
+            <button class="btn btn-secondary" @onclick="ChangeState">Change state</button>
+        </div>
+
+        <h2 class="mt-4">Files</h2>
+        <ul>
+            @foreach (var f in _details.Files) { <li><a href="/files/@f.Uuid">@f.FileName</a> (@f.Kind, @(f.Size / 1024) KB)</li> }
+        </ul>
+        <div class="d-flex gap-2">
+            <select class="form-select w-auto" @bind="_kind">
+                @foreach (var k in Enum.GetValues<FileKind>()) { <option value="@k">@k</option> }
+            </select>
+            <InputFile OnChange="Upload" />
+        </div>
+        <button class="btn btn-outline-danger mt-4" @onclick="Delete">Delete asset</button>
+    }
+}
+
+@code {
+    [Parameter] public Guid? Uuid { get; set; }
+
+    private readonly FormModel _model = new();
+    private AssetDetails? _details;
+    private IReadOnlyList<Currency> _currencies = [];
+    private IReadOnlyList<AssetState> _states = [];
+    private int _newState = AssetState.AvailableId;
+    private FileKind _kind = FileKind.Invoice;
+    private string? _error;
+    private bool _ready;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _currencies = await Lookups.CurrenciesAsync();
+        _states = await Lookups.AssetStatesAsync();
+        if (Uuid is { } id)
+        {
+            _details = await AssetSvc.GetAsync(id);
+            if (_details is null) { Nav.NavigateTo("assets"); return; }
+            _model.Name = _details.Name; _model.Brand = _details.Brand; _model.Type = _details.Type;
+            _model.SerialNumber = _details.SerialNumber; _model.ModelNumber = _details.ModelNumber;
+            _model.Location = _details.Location; _model.Notes = _details.Notes; _model.Vendor = _details.Vendor;
+            _model.PurchaseAmount = _details.PurchaseAmount; _model.PurchaseDate = _details.PurchaseDate?.ToDateTime(TimeOnly.MinValue);
+            _model.PurchaseCurrencyId = _currencies.FirstOrDefault(c => c.Code == _details.PurchaseCurrency)?.Id;
+            _newState = _details.StateId;
+        }
+        _ready = true;
+    }
+
+    private async Task Save()
+    {
+        await Run(async () =>
+        {
+            var id = await AssetSvc.SaveAsync(new SaveAssetCommand(Uuid, _model.Name, _model.Brand, _model.Type, _model.Location, _model.Notes,
+                _model.SerialNumber, _model.ModelNumber, _model.PurchaseAmount, _model.PurchaseCurrencyId,
+                _model.PurchaseDate is { } d ? DateOnly.FromDateTime(d) : null, _model.Vendor));
+            if (Uuid is null) Nav.NavigateTo($"assets/{id}"); else _details = await AssetSvc.GetAsync(id);
+        });
+    }
+
+    private Task ChangeState() => Run(async () => { await AssetSvc.ChangeStateAsync(Uuid!.Value, _newState, null); _details = await AssetSvc.GetAsync(Uuid.Value); });
+
+    private Task Upload(InputFileChangeEventArgs e) => Run(async () =>
+    {
+        foreach (var file in e.GetMultipleFiles(10))
+        {
+            await using var stream = file.OpenReadStream(AssetService.MaxFileSize);
+            await AssetSvc.AddFileAsync(Uuid!.Value, file.Name, file.ContentType, _kind, stream);
+        }
+        _details = await AssetSvc.GetAsync(Uuid!.Value);
+    });
+
+    private Task Delete() => Run(async () => { await AssetSvc.DeleteAsync(Uuid!.Value); Nav.NavigateTo("assets"); });
+
+    private async Task Run(Func<Task> action)
+    {
+        _error = null;
+        try { await action(); }
+        catch (Exception ex) when (ex is DomainException or NotFoundException or IOException or InvalidOperationException) { _error = ex.Message; }
+    }
+
+    private sealed class FormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required] public string Name { get; set; } = "";
+        public string? Brand { get; set; }
+        public string? Type { get; set; }
+        public string? SerialNumber { get; set; }
+        public string? ModelNumber { get; set; }
+        public string? Location { get; set; }
+        public string? Notes { get; set; }
+        public string? Vendor { get; set; }
+        public decimal? PurchaseAmount { get; set; }
+        public int? PurchaseCurrencyId { get; set; }
+        public DateTime? PurchaseDate { get; set; }
+    }
+}

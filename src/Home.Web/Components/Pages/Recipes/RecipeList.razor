@@ -1,0 +1,27 @@
+@page "/recipes"
+@inject RecipeService Recipes
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Recipes</PageTitle>
+<h1>Recipes</h1>
+@if (_error is not null) { <div class="alert alert-danger">@_error</div> }
+<div class="d-flex gap-2 mb-3">
+    <input class="form-control w-auto" placeholder="Title" @bind="_title" />
+    <input type="number" min="1" class="form-control w-auto" @bind="_servings" />
+    <button class="btn btn-primary" @onclick="Create">Create</button>
+</div>
+<ul>@foreach (var r in _items) { <li><a href="recipes/@r.Uuid">@r.Title</a> (@r.Servings servings, @r.IterationCount iterations)</li> }</ul>
+
+@code {
+    private IReadOnlyList<RecipeListItem> _items = [];
+    private string _title = "", _error = null!;
+    private int _servings = 2;
+    protected override async Task OnInitializedAsync() => _items = await Recipes.ListAsync();
+    private async Task Create()
+    {
+        _error = null!;
+        try { var id = await Recipes.CreateAsync(_title, _servings, null); Nav.NavigateTo($"recipes/{id}"); }
+        catch (DomainException ex) { _error = ex.Message; }
+    }
+}

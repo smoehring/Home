@@ -1,0 +1,71 @@
+@page "/artworks"
+@inject ArtworkService Artworks
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Artworks</PageTitle>
+<h1>Artworks</h1>
+@if (_error is not null) { <div class="alert alert-danger">@_error</div> }
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <input class="form-control w-auto" placeholder="Search title or character" @bind="_search" />
+    <select class="form-select w-auto" @bind="_stage">
+        <option value="">All stages</option>
+        @foreach (var s in Enum.GetValues<ArtworkStage>()) { <option value="@s">@s</option> }
+    </select>
+    <div class="form-check align-self-center"><input id="adult" type="checkbox" class="form-check-input" @bind="_adult" /><label for="adult" class="form-check-label">Show adult</label></div>
+    <button class="btn btn-secondary" @onclick="Load">Filter</button>
+</div>
+
+<div class="card p-3 mb-3">
+    <h2 class="h5">New artwork</h2>
+    <div class="d-flex gap-2 flex-wrap">
+        <input class="form-control w-auto" placeholder="Title" @bind="_title" />
+        <input class="form-control w-auto" placeholder="Characters (comma separated)" @bind="_characters" />
+        <select class="form-select w-auto" @bind="_artistId">
+            <option value="0">No artist</option>
+            @foreach (var a in _artists) { <option value="@a.Id">@a.DisplayName</option> }
+        </select>
+        <div class="form-check align-self-center"><input id="newadult" type="checkbox" class="form-check-input" @bind="_newAdult" /><label for="newadult" class="form-check-label">Adult</label></div>
+        <button class="btn btn-primary" @onclick="Create">Create</button>
+    </div>
+</div>
+
+@if (_items is not null)
+{
+    <table class="table table-sm">
+        <thead><tr><th>Title</th><th>Stage</th><th>Artists</th><th>Characters</th><th>Versions</th></tr></thead>
+        <tbody>
+        @foreach (var a in _items)
+        {
+            <tr><td><a href="artworks/@a.Uuid">@a.Title</a></td><td>@a.Stage</td><td>@string.Join(", ", a.Artists)</td><td>@string.Join(", ", a.Characters)</td><td>@a.VersionCount</td></tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string? _search, _characters, _error;
+    private string _title = "", _stage = "";
+    private bool _adult, _newAdult;
+    private int _artistId;
+    private IReadOnlyList<ArtworkListItem>? _items;
+    private IReadOnlyList<Artist> _artists = [];
+
+    protected override async Task OnInitializedAsync() { _artists = await Artworks.ArtistsAsync(); await Load(); }
+
+    private async Task Load() =>
+        _items = (await Artworks.ListAsync(new ArtworkFilter(_search, Enum.TryParse<ArtworkStage>(_stage, out var s) ? s : null, _adult))).Items;
+
+    private async Task Create()
+    {
+        _error = null;
+        try
+        {
+            var artists = _artistId > 0 ? new[] { (_artistId, ArtistRole.Commission) } : [];
+            var id = await Artworks.CreateAsync(new CreateArtworkCommand(_title, _newAdult, (_characters ?? "").Split(','), artists));
+            Nav.NavigateTo($"artworks/{id}");
+        }
+        catch (DomainException ex) { _error = ex.Message; }
+    }
+}

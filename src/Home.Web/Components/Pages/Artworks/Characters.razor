@@ -1,0 +1,15 @@
+@page "/artworks/characters"
+@inject ArtworkService Artworks
+@rendermode InteractiveServer
+
+<PageTitle>Characters</PageTitle>
+<h1>Characters</h1>
+<table class="table table-sm">
+    <thead><tr><th>Name</th><th>Series</th><th>Owned</th></tr></thead>
+    <tbody>@foreach (var c in _characters) { <tr><td>@c.Name</td><td>@c.Series</td><td>@(c.IsOwned ? "yes" : "no")</td></tr> }</tbody>
+</table>
+
+@code {
+    private IReadOnlyList<Character> _characters = [];
+    protected override async Task OnInitializedAsync() => _characters = await Artworks.CharactersAsync();
+}

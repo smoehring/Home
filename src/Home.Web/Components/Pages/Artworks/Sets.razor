@@ -1,0 +1,29 @@
+@page "/artworks/sets"
+@inject ArtworkService Artworks
+@rendermode InteractiveServer
+
+<PageTitle>Sets</PageTitle>
+<h1>Sets</h1>
+@if (_error is not null) { <div class="alert alert-danger">@_error</div> }
+<div class="d-flex gap-2 mb-3">
+    <input class="form-control w-auto" placeholder="Name" @bind="_name" />
+    <input type="number" class="form-control w-auto" placeholder="Planned count" @bind="_planned" />
+    <button class="btn btn-primary" @onclick="Add">Add</button>
+</div>
+<table class="table table-sm">
+    <thead><tr><th>Name</th><th>Items</th><th>Completion</th></tr></thead>
+    <tbody>@foreach (var s in _sets) { <tr><td>@s.Name</td><td>@s.Items.Count / @(s.PlannedCount?.ToString() ?? "?")</td><td>@(s.CompletionPercent is { } p ? $"{p}%" : "-")</td></tr> }</tbody>
+</table>
+
+@code {
+    private IReadOnlyList<ArtworkSet> _sets = [];
+    private string _name = "", _error = null!;
+    private int? _planned;
+    protected override async Task OnInitializedAsync() => _sets = await Artworks.SetsAsync();
+    private async Task Add()
+    {
+        _error = null!;
+        try { await Artworks.CreateSetAsync(_name, _planned); _name = ""; _sets = await Artworks.SetsAsync(); }
+        catch (DomainException ex) { _error = ex.Message; }
+    }
+}

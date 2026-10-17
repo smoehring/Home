@@ -1,0 +1,22 @@
+@* Lightweight Gantt chart: one row per step; waiting time and hands-on time use different colours. *@
+@{
+    var total = Rows.Count == 0 ? 1 : Math.Max(1, Rows.Max(r => r.End.TotalMinutes));
+    string Pct(double v) => (v / total * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+}
+<div class="gantt" role="img" aria-label="Recipe schedule">
+    @foreach (var r in Rows)
+    {
+        <div class="gantt-row">
+            <div class="gantt-label">@r.Name</div>
+            <div class="gantt-track">
+                <div class="gantt-bar @(r.IsActiveWork ? "active" : "waiting")"
+                     style="left:@Pct(r.Start.TotalMinutes);width:@Pct(Math.Max(1, (r.End - r.Start).TotalMinutes))"
+                     title="@r.Start.ToString(@"hh\:mm") - @r.End.ToString(@"hh\:mm")"></div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<GanttRow> Rows { get; set; } = [];
+}

@@ -318,7 +318,7 @@ Multi-stage Dockerfile:
 ### 7.4 Configuration (environment variables)
 
 ```
-ConnectionStrings__Postgres=Host=home-pg-rw;Database=home;Username=home;******;
+ConnectionStrings__Postgres=Host=home-pg-rw;Database=home;Username=home;Password=CHANGE_ME;
 Database__AutoMigrate=false
 Storage__Provider=S3|Local
 Storage__S3__ServiceUrl, Storage__S3__Bucket, Storage__S3__AccessKey, Storage__S3__SecretKey
@@ -413,3 +413,11 @@ Rollback: until decommissioning, the old SQL Server database and blob container 
 - **Artwork** – a digital artwork asset with credits, versions, payments and set membership.
 - **Iteration** – a versioned variation of a recipe.
 - **Set** – an ordered collection of artworks (e.g. a themed series).
+
+## 12. Implementation status
+
+The first implementation lives in `src/` (see README). The old code is kept under `legacy/`.
+
+Implemented: domain model for assets/insurance, media, artworks and recipes; Gantt scheduler; application services; PostgreSQL model and `Initial` migration; local file store with private download endpoint; Entra ID sign-in; health endpoints; OpenTelemetry; Blazor pages (assets, artworks, artists, characters, sets, recipes with Gantt view); insurance CSV report; Dockerfile, k8s manifests, CI; unit and PostgreSQL integration tests.
+
+Not yet implemented: S3 file store, data/blob migration tooling from the legacy SQL Server/Azure data, thumbnails, media library pages, valuation and artwork-version file upload UI, print labels, image-based UI tests. The migration Job in `deploy/k8s` and the `bundle` Docker stage are untested.
