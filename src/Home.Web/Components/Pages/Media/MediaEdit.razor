@@ -1,0 +1,107 @@
+@page "/media/new"
+@page "/media/{Uuid:guid}"
+@inject MediaService MediaSvc
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Media</PageTitle>
+<h1>@(Uuid is null ? "New media" : _title)</h1>
+@if (_error is not null) { <div class="alert alert-danger">@_error</div> }
+
+@if (_ready)
+{
+    <div class="row g-2">
+        <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" @bind="_title" /></div>
+        <div class="col-md-2"><label class="form-label">Kind</label>
+            <select class="form-select" @bind="_kind">@foreach (var k in Enum.GetValues<MediaKind>()) { <option value="@k">@k</option> }</select></div>
+        <div class="col-md-4"><label class="form-label">Released</label><InputDate class="form-control" @bind-Value="_release" /></div>
+        <div class="col-md-8"><label class="form-label">Group (series, collection)</label><input class="form-control" @bind="_group" /></div>
+        <div class="col-md-4"><label class="form-label">Order in group</label><InputNumber class="form-control" @bind-Value="_groupOrder" /></div>
+    </div>
+
+    <h2 class="h5 mt-3">Alternative names</h2>
+    @foreach (var n in _names)
+    {
+        <div class="d-flex gap-2 mb-1">
+            <input class="form-control w-auto" @bind="n.Name" />
+            <select class="form-select w-auto" @bind="n.LanguageId">@foreach (var l in _languages) { <option value="@l.Id">@l.DisplayName</option> }</select>
+            <button class="btn btn-sm btn-outline-danger" @onclick="() => _names.Remove(n)">Remove</button>
+        </div>
+    }
+    <button class="btn btn-sm btn-outline-secondary" @onclick="AddName">Add name</button>
+
+    <h2 class="h5 mt-3">External ids</h2>
+    @foreach (var e in _ids)
+    {
+        <div class="d-flex gap-2 mb-1">
+            <input class="form-control w-auto" placeholder="System (e.g. IMDb, Steam)" @bind="e.System" />
+            <input class="form-control w-auto" placeholder="Value" @bind="e.Value" />
+            <button class="btn btn-sm btn-outline-danger" @onclick="() => _ids.Remove(e)">Remove</button>
+        </div>
+    }
+    <button class="btn btn-sm btn-outline-secondary" @onclick="() => _ids.Add(new())">Add id</button>
+
+    <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-primary" @onclick="Save">Save</button>
+        @if (Uuid is not null)
+        {
+            <a class="btn btn-outline-secondary" href="assets/@Uuid">Inventory record</a>
+            <button class="btn btn-outline-danger" @onclick="Delete">Delete</button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid? Uuid { get; set; }
+
+    private IReadOnlyList<Language> _languages = [];
+    private string _title = "", _group = "";
+    private string? _error;
+    private MediaKind _kind;
+    private DateTime? _release;
+    private int? _groupOrder;
+    private readonly List<NameRow> _names = [];
+    private readonly List<IdRow> _ids = [];
+    private bool _ready;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _languages = await MediaSvc.LanguagesAsync();
+        if (Uuid is { } id)
+        {
+            var m = await MediaSvc.GetAsync(id);
+            if (m is null) { Nav.NavigateTo("media"); return; }
+            _title = m.Title; _kind = m.Kind; _group = m.Group ?? ""; _groupOrder = m.GroupOrder;
+            _release = m.ReleaseDate?.ToDateTime(TimeOnly.MinValue);
+            _names.Clear(); _names.AddRange(m.Names.Select(n => new NameRow { Name = n.Name, LanguageId = n.LanguageId }));
+            _ids.Clear(); _ids.AddRange(m.ExternalIds.Select(e => new IdRow { System = e.System, Value = e.Value }));
+        }
+        _ready = true;
+    }
+
+    private void AddName() => _names.Add(new NameRow { LanguageId = _languages.FirstOrDefault()?.Id ?? 0 });
+
+    private async Task Save()
+    {
+        _error = null;
+        try
+        {
+            var id = await MediaSvc.SaveAsync(new SaveMediaCommand(Uuid, _title, _kind, _group, _groupOrder,
+                _release is { } d ? DateOnly.FromDateTime(d) : null,
+                _names.Select(n => new MediaNameItem(n.Name, n.LanguageId)).ToList(),
+                _ids.Select(e => new MediaExternalIdItem(e.System, e.Value)).ToList()));
+            if (Uuid is null) Nav.NavigateTo($"media/{id}");
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException) { _error = ex.Message; }
+    }
+
+    private async Task Delete()
+    {
+        _error = null;
+        try { await MediaSvc.DeleteAsync(Uuid!.Value); Nav.NavigateTo("media"); }
+        catch (Exception ex) when (ex is DomainException or NotFoundException) { _error = ex.Message; }
+    }
+
+    private sealed class NameRow { public string Name { get; set; } = ""; public int LanguageId { get; set; } }
+    private sealed class IdRow { public string System { get; set; } = ""; public string Value { get; set; } = ""; }
+}

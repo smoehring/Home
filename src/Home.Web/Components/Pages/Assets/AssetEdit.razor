@@ -45,6 +45,29 @@
             <button class="btn btn-secondary" @onclick="ChangeState">Change state</button>
         </div>
 
+        <h2 class="mt-4">Valuations</h2>
+        <table class="table table-sm w-auto">
+            <thead><tr><th>Date</th><th>Amount</th><th>Reason</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var v in _valuations)
+            {
+                <tr><td>@v.ValuedOn.ToString("yyyy-MM-dd")</td><td>@v.Amount.ToString("N2") @v.Currency</td><td>@v.Reason</td>
+                    <td><button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveValuation(v.Id)">Remove</button></td></tr>
+            }
+            </tbody>
+        </table>
+        <div class="d-flex gap-2">
+            <InputDate class="form-control w-auto" @bind-Value="_valDate" />
+            <InputNumber class="form-control w-auto" @bind-Value="_valAmount" />
+            <select class="form-select w-auto" @bind="_valCurrencyId">
+                @foreach (var c in _currencies) { <option value="@c.Id">@c.Code</option> }
+            </select>
+            <select class="form-select w-auto" @bind="_valReason">
+                @foreach (var r in Enum.GetValues<ValuationReason>()) { <option value="@r">@r</option> }
+            </select>
+            <button class="btn btn-secondary" @onclick="AddValuation">Add valuation</button>
+        </div>
+
         <h2 class="mt-4">Files</h2>
         <ul>
             @foreach (var f in _details.Files) { <li><a href="/files/@f.Uuid">@f.FileName</a> (@f.Kind, @(f.Size / 1024) KB)</li> }
@@ -68,6 +91,11 @@
     private IReadOnlyList<AssetState> _states = [];
     private int _newState = AssetState.AvailableId;
     private FileKind _kind = FileKind.Invoice;
+    private IReadOnlyList<ValuationItem> _valuations = [];
+    private DateTime _valDate = DateTime.Today;
+    private decimal _valAmount;
+    private int _valCurrencyId = 1;
+    private ValuationReason _valReason = ValuationReason.Appraisal;
     private string? _error;
     private bool _ready;
 
@@ -85,6 +113,7 @@
             _model.PurchaseAmount = _details.PurchaseAmount; _model.PurchaseDate = _details.PurchaseDate?.ToDateTime(TimeOnly.MinValue);
             _model.PurchaseCurrencyId = _currencies.FirstOrDefault(c => c.Code == _details.PurchaseCurrency)?.Id;
             _newState = _details.StateId;
+            _valuations = await AssetSvc.ValuationsAsync(id);
         }
         _ready = true;
     }
@@ -110,6 +139,18 @@
             await AssetSvc.AddFileAsync(Uuid!.Value, file.Name, file.ContentType, _kind, stream);
         }
         _details = await AssetSvc.GetAsync(Uuid!.Value);
+    });
+
+    private Task AddValuation() => Run(async () =>
+    {
+        await AssetSvc.AddValuationAsync(new AddValuationCommand(Uuid!.Value, _valAmount, _valCurrencyId, DateOnly.FromDateTime(_valDate), _valReason));
+        _valuations = await AssetSvc.ValuationsAsync(Uuid.Value);
+    });
+
+    private Task RemoveValuation(int id) => Run(async () =>
+    {
+        await AssetSvc.RemoveValuationAsync(Uuid!.Value, id);
+        _valuations = await AssetSvc.ValuationsAsync(Uuid.Value);
     });
 
     private Task Delete() => Run(async () => { await AssetSvc.DeleteAsync(Uuid!.Value); Nav.NavigateTo("assets"); });

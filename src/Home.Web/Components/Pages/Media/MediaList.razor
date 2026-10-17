@@ -1,0 +1,53 @@
+@page "/media"
+@inject MediaService MediaSvc
+@rendermode InteractiveServer
+
+<PageTitle>Media library</PageTitle>
+<h1>Media library</h1>
+
+<div class="mb-3 d-flex gap-2">
+    <input class="form-control w-auto" placeholder="Search title, alternative name, external id" @bind="_search" @onkeyup="OnKey" />
+    <select class="form-select w-auto" @bind="_kind">
+        <option value="">All kinds</option>
+        @foreach (var k in Enum.GetValues<MediaKind>()) { <option value="@k">@k</option> }
+    </select>
+    <button class="btn btn-secondary" @onclick="Search">Search</button>
+    <a class="btn btn-primary" href="media/new">New media</a>
+</div>
+
+@if (_result is null) { <p>Loading…</p> }
+else
+{
+    <table class="table table-sm">
+        <thead><tr><th>Title</th><th>Kind</th><th>Group</th><th>Released</th></tr></thead>
+        <tbody>
+        @foreach (var m in _result.Items)
+        {
+            <tr><td><a href="media/@m.AssetUuid">@m.Title</a></td><td>@m.Kind</td>
+                <td>@m.Group @(m.GroupOrder is { } o ? $"#{o}" : "")</td><td>@m.ReleaseDate?.ToString("yyyy-MM-dd")</td></tr>
+        }
+        </tbody>
+    </table>
+    <div class="d-flex gap-2 align-items-center">
+        <button class="btn btn-outline-secondary" disabled="@(_page <= 1)" @onclick="Prev">Previous</button>
+        <span>Page @_page (@_result.TotalCount items)</span>
+        <button class="btn btn-outline-secondary" disabled="@(_page * _result.PageSize >= _result.TotalCount)" @onclick="Next">Next</button>
+    </div>
+}
+
+@code {
+    private PagedResult<MediaListItem>? _result;
+    private string? _search;
+    private string _kind = "";
+    private int _page = 1;
+
+    protected override Task OnInitializedAsync() => Reload();
+
+    private async Task Reload() =>
+        _result = await MediaSvc.SearchAsync(new MediaQuery(_search, Enum.TryParse<MediaKind>(_kind, out var k) ? k : null, _page));
+
+    private Task Search() { _page = 1; return Reload(); }
+    private Task OnKey(KeyboardEventArgs e) => e.Key == "Enter" ? Search() : Task.CompletedTask;
+    private Task Prev() { _page--; return Reload(); }
+    private Task Next() { _page++; return Reload(); }
+}

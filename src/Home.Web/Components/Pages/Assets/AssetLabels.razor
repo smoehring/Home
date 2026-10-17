@@ -1,0 +1,91 @@
+@page "/assets/labels"
+@using QRCoder
+@inject AssetService AssetSvc
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>Labels</PageTitle>
+<div class="no-print">
+    <h1>Asset labels</h1>
+    @if (_error is not null) { <div class="alert alert-danger">@_error</div> }
+    <div class="mb-3 d-flex gap-2 align-items-center">
+        <input class="form-control w-auto" placeholder="Search name or serial" @bind="_search" />
+        <div class="form-check"><input id="unprinted" type="checkbox" class="form-check-input" @bind="_onlyUnprinted" /><label for="unprinted" class="form-check-label">Only unprinted</label></div>
+        <button class="btn btn-secondary" @onclick="Load">Load</button>
+        <button class="btn btn-outline-secondary" @onclick="() => SelectAll(true)">Select all</button>
+        <button class="btn btn-outline-secondary" @onclick="() => SelectAll(false)">Clear</button>
+        <button class="btn btn-primary" onclick="window.print()" disabled="@(_selected.Count == 0)">Print (@_selected.Count)</button>
+        <button class="btn btn-outline-primary" @onclick="MarkPrinted" disabled="@(_selected.Count == 0)">Mark as printed</button>
+    </div>
+    <table class="table table-sm">
+        <thead><tr><th></th><th>Name</th><th>Serial</th><th>Printed</th></tr></thead>
+        <tbody>
+        @foreach (var l in _labels)
+        {
+            <tr>
+                <td><input type="checkbox" checked="@_selected.Contains(l.Uuid)" @onchange="e => Toggle(l.Uuid, (bool)e.Value!)" /></td>
+                <td>@l.Name</td><td>@l.SerialNumber</td><td>@(l.PrintedAt?.ToString("yyyy-MM-dd"))</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<div class="label-sheet">
+    @foreach (var l in _labels.Where(l => _selected.Contains(l.Uuid)))
+    {
+        <div class="label">
+            <div class="label-qr">@((MarkupString)Qr(l.Uuid))</div>
+            <div class="label-text">
+                <strong>@l.Name</strong>
+                @if (!string.IsNullOrWhiteSpace(l.Brand)) { <div>@l.Brand</div> }
+                @if (!string.IsNullOrWhiteSpace(l.SerialNumber)) { <div>S/N @l.SerialNumber</div> }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .label-sheet { display: flex; flex-wrap: wrap; gap: 4px; }
+    .label { display: flex; gap: 6px; width: 64mm; height: 30mm; padding: 2mm; border: 1px dashed #999; overflow: hidden; font-size: 9pt; break-inside: avoid; }
+    .label-qr { width: 26mm; flex: none; }
+    .label-qr svg { width: 100%; height: 100%; }
+    @@media print { .no-print, header, nav, .sidebar, .top-row { display: none !important; } .label { border: none; } }
+</style>
+
+@code {
+    private string? _search, _error;
+    private bool _onlyUnprinted = true;
+    private IReadOnlyList<AssetLabel> _labels = [];
+    private readonly HashSet<Guid> _selected = [];
+
+    protected override Task OnInitializedAsync() => Load();
+
+    private async Task Load()
+    {
+        _labels = await AssetSvc.LabelsAsync(new LabelQuery(_search, _onlyUnprinted));
+        _selected.IntersectWith(_labels.Select(l => l.Uuid));
+    }
+
+    private void Toggle(Guid id, bool on) { if (on) _selected.Add(id); else _selected.Remove(id); }
+
+    private void SelectAll(bool on)
+    {
+        _selected.Clear();
+        if (on) foreach (var l in _labels) _selected.Add(l.Uuid);
+    }
+
+    private async Task MarkPrinted()
+    {
+        _error = null;
+        try { await AssetSvc.MarkPrintedAsync(_selected.ToList()); _selected.Clear(); await Load(); }
+        catch (Exception ex) when (ex is DomainException or NotFoundException) { _error = ex.Message; }
+    }
+
+    private string Qr(Guid uuid)
+    {
+        using var gen = new QRCodeGenerator();
+        using var data = gen.CreateQrCode(Nav.ToAbsoluteUri($"assets/{uuid}").ToString(), QRCodeGenerator.ECCLevel.M);
+        return new SvgQRCode(data).GetGraphic(new System.Drawing.Size(200, 200), "#000000", "#ffffff", drawQuietZones: true, SvgQRCode.SizingMode.ViewBoxAttribute);
+    }
+}

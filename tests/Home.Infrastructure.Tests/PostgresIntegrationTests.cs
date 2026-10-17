@@ -93,7 +93,7 @@ public class PostgresIntegrationTests(PostgresFixture fx) : IClassFixture<Postgr
     [PostgresFact]
     public async Task Only_one_primary_artwork_version_is_allowed_by_the_database()
     {
-        var svc = new ArtworkService(fx.Adapter, TimeProvider.System);
+        var svc = new ArtworkService(fx.Adapter, new NullStore(), TimeProvider.System);
         var uuid = await svc.CreateAsync(new CreateArtworkCommand("Art", false, ["Alice"], []));
         await svc.AddVersionAsync(uuid, "one", true, null);
         await svc.AddVersionAsync(uuid, "two", true, null);

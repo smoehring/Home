@@ -9,7 +9,8 @@ namespace Smoehring.Home.Application.Tests;
 public class ArtworkServiceTests
 {
     private readonly TestDb _db = new();
-    private ArtworkService Sut => new(_db, _db.Clock);
+    private readonly InMemoryFileStore _files = new();
+    private ArtworkService Sut => new(_db, _files, _db.Clock);
 
     private Task<Guid> Create(string title = "Dragon", bool adult = false, params string[] characters) =>
         Sut.CreateAsync(new CreateArtworkCommand(title, adult, characters, []));
@@ -145,5 +146,50 @@ public class ArtworkServiceTests
         var set = Assert.Single(await Sut.SetsAsync());
         Assert.Equal(2, set.Items.Count);
         Assert.Equal(50m, set.CompletionPercent);
+    }
+
+    [Fact]
+    public async Task Version_upload_stores_the_file_on_the_artworks_asset_and_links_it()
+    {
+        var id = await Create();
+        await Sut.AddVersionWithFileAsync(id, "Final", true, @"C:\temp\final.png", "image/png", new MemoryStream([1, 2, 3]));
+        var versions = await Sut.VersionsAsync(id);
+        var v = Assert.Single(versions);
+        Assert.True(v.IsPrimary);
+        Assert.Equal("final.png", v.FileName);
+        Assert.NotNull(v.FileUuid);
+        Assert.Single(_files.Files);
+        await using var raw = _db.Raw();
+        var artwork = await raw.Artworks.SingleAsync();
+        Assert.Equal(artwork.AssetId, raw.AssetFiles.Single().AssetId);
+    }
+
+    [Fact]
+    public async Task Uploaded_primary_version_allows_completing_the_artwork()
+    {
+        var id = await Create();
+        await Sut.AddVersionWithFileAsync(id, "Final", true, "a.png", null, new MemoryStream([1]));
+        await Sut.ChangeStageAsync(id, ArtworkStage.Complete, null);
+    }
+
+    [Fact]
+    public async Task Version_upload_rejects_bad_input_without_storing_anything()
+    {
+        var id = await Create();
+        await Assert.ThrowsAsync<DomainException>(() => Sut.AddVersionWithFileAsync(id, " ", false, "a.png", null, new MemoryStream([1])));
+        await Assert.ThrowsAsync<DomainException>(() => Sut.AddVersionWithFileAsync(id, "x", false, "", null, new MemoryStream([1])));
+        await Assert.ThrowsAsync<NotFoundException>(() => Sut.AddVersionWithFileAsync(Guid.NewGuid(), "x", false, "a.png", null, new MemoryStream([1])));
+        Assert.Empty(_files.Files);
+    }
+
+    [Fact]
+    public async Task Versions_without_file_are_listed_without_file_info_and_primary_first()
+    {
+        var id = await Create();
+        await Sut.AddVersionAsync(id, "Alt", false, null);
+        await Sut.AddVersionAsync(id, "Main", true, null);
+        var list = await Sut.VersionsAsync(id);
+        Assert.Equal(["Main", "Alt"], list.Select(v => v.Label));
+        Assert.All(list, v => Assert.Null(v.FileUuid));
     }
 }

@@ -21,3 +21,11 @@ public sealed record SaveAssetCommand(
 public sealed record InsuranceReportRow(
     string Name, string? Brand, string? SerialNumber, string? ModelNumber, DateOnly? PurchaseDate,
     decimal? PurchaseAmount, string? Currency, decimal? CurrentValue, string State);
+
+public sealed record ValuationItem(int Id, decimal Amount, string Currency, DateOnly ValuedOn, ValuationReason Reason);
+
+public sealed record AddValuationCommand(Guid AssetUuid, decimal Amount, int CurrencyId, DateOnly ValuedOn, ValuationReason Reason);
+
+public sealed record AssetLabel(Guid Uuid, string Name, string? Brand, string? SerialNumber, DateTimeOffset? PrintedAt);
+
+public sealed record LabelQuery(string? Search = null, bool OnlyUnprinted = false, int Max = 200);

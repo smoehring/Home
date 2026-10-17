@@ -19,11 +19,18 @@ else
         <button class="btn btn-secondary" @onclick="ChangeStage">Apply</button>
     </div>
 
-    <h2 class="h5">Add version</h2>
+    <h2 class="h5">Versions</h2>
+    <ul>
+        @foreach (var v in _versions)
+        {
+            <li>@v.Label @(v.IsPrimary ? "(primary)" : "") @if (v.FileUuid is { } f) { <a href="/files/@f">@v.FileName</a> } else { <span class="text-muted">no file</span> }</li>
+        }
+    </ul>
     <div class="d-flex gap-2 mb-3">
         <input class="form-control w-auto" placeholder="Label (e.g. Alt outfit)" @bind="_label" />
         <div class="form-check align-self-center"><input id="prim" type="checkbox" class="form-check-input" @bind="_primary" /><label for="prim" class="form-check-label">Primary</label></div>
-        <button class="btn btn-secondary" @onclick="AddVersion">Add</button>
+        <button class="btn btn-secondary" @onclick="AddVersion">Add without file</button>
+        <InputFile OnChange="UploadVersion" accept="image/*,.pdf,.psd,.clip,.kra" />
     </div>
 
     <h2 class="h5">Payments</h2>
@@ -46,6 +53,7 @@ else
     private ArtworkListItem? _item;
     private IReadOnlyList<Currency> _currencies = [];
     private IReadOnlyDictionary<string, decimal> _totals = new Dictionary<string, decimal>();
+    private IReadOnlyList<ArtworkVersionItem> _versions = [];
     private ArtworkStage _stage;
     private string _label = "", _error = null!;
     private bool _primary;
@@ -61,16 +69,23 @@ else
         _item = page.Items.FirstOrDefault(a => a.Uuid == Uuid);
         if (_item is not null) _stage = _item.Stage;
         _totals = await Artworks.TotalPaidAsync(Uuid);
+        _versions = await Artworks.VersionsAsync(Uuid);
     }
 
     private Task ChangeStage() => Run(() => Artworks.ChangeStageAsync(Uuid, _stage, null));
     private Task AddVersion() => Run(() => Artworks.AddVersionAsync(Uuid, _label, _primary, null));
+    private Task UploadVersion(InputFileChangeEventArgs e) => Run(async () =>
+    {
+        await using var stream = e.File.OpenReadStream(AssetService.MaxFileSize);
+        await Artworks.AddVersionWithFileAsync(Uuid, _label, _primary, e.File.Name, e.File.ContentType, stream);
+    });
+
     private Task AddPayment() => Run(() => Artworks.AddPaymentAsync(new AddPaymentCommand(Uuid, _amount, _currencyId, DateOnly.FromDateTime(DateTime.Today), _kind, PaymentMethod.Other, null, null)));
 
     private async Task Run(Func<Task> action)
     {
         _error = null!;
         try { await action(); await Reload(); }
-        catch (Exception ex) when (ex is DomainException or NotFoundException) { _error = ex.Message; }
+        catch (Exception ex) when (ex is DomainException or NotFoundException or IOException) { _error = ex.Message; }
     }
 }

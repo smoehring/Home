@@ -140,6 +140,63 @@ public class AssetService(IApplicationDbContextFactory dbFactory, IFileStore fil
         return stream is null ? null : (file, stream);
     }
 
+    public async Task<IReadOnlyList<ValuationItem>> ValuationsAsync(Guid assetUuid, CancellationToken ct = default)
+    {
+        await using var db = dbFactory.Create();
+        var asset = await db.Assets.AsNoTracking().Include(a => a.Valuations).ThenInclude(v => v.Currency)
+            .FirstOrDefaultAsync(a => a.Uuid == assetUuid && a.DeletedAt == null, ct) ?? throw new NotFoundException("Asset");
+        return asset.Valuations.OrderByDescending(v => v.ValuedOn).ThenByDescending(v => v.Id)
+            .Select(v => new ValuationItem(v.Id, v.Amount, v.Currency?.Code ?? "", v.ValuedOn, v.Reason)).ToList();
+    }
+
+    public async Task AddValuationAsync(AddValuationCommand cmd, CancellationToken ct = default)
+    {
+        if (cmd.Amount < 0) throw new DomainException("A valuation must not be negative.");
+        await using var db = dbFactory.Create();
+        var asset = await db.Assets.Include(a => a.Valuations).FirstOrDefaultAsync(a => a.Uuid == cmd.AssetUuid && a.DeletedAt == null, ct)
+            ?? throw new NotFoundException("Asset");
+        if (!await db.Currencies.AnyAsync(c => c.Id == cmd.CurrencyId, ct)) throw new NotFoundException("Currency");
+        asset.Valuations.Add(new AssetValuation { Amount = cmd.Amount, CurrencyId = cmd.CurrencyId, ValuedOn = cmd.ValuedOn, Reason = cmd.Reason });
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task RemoveValuationAsync(Guid assetUuid, int valuationId, CancellationToken ct = default)
+    {
+        await using var db = dbFactory.Create();
+        var asset = await db.Assets.Include(a => a.Valuations).FirstOrDefaultAsync(a => a.Uuid == assetUuid && a.DeletedAt == null, ct)
+            ?? throw new NotFoundException("Asset");
+        var valuation = asset.Valuations.FirstOrDefault(v => v.Id == valuationId) ?? throw new NotFoundException("Valuation");
+        asset.Valuations.Remove(valuation);
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<AssetLabel>> LabelsAsync(LabelQuery query, CancellationToken ct = default)
+    {
+        await using var db = dbFactory.Create();
+        var q = db.Assets.AsNoTracking().Where(a => a.DeletedAt == null);
+        if (query.OnlyUnprinted) q = q.Where(a => a.PrintDate == null);
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var term = query.Search.Trim().ToLower();
+            q = q.Where(a => a.Name.ToLower().Contains(term)
+                || (a.Device != null && a.Device.SerialNumber != null && a.Device.SerialNumber.ToLower().Contains(term)));
+        }
+        return await q.OrderBy(a => a.Name).Take(Math.Clamp(query.Max, 1, 500))
+            .Select(a => new AssetLabel(a.Uuid, a.Name, a.Brand != null ? a.Brand.Name : null,
+                a.Device != null ? a.Device.SerialNumber : null, a.PrintDate))
+            .ToListAsync(ct);
+    }
+
+    public async Task MarkPrintedAsync(IReadOnlyCollection<Guid> uuids, CancellationToken ct = default)
+    {
+        if (uuids.Count == 0) return;
+        await using var db = dbFactory.Create();
+        var now = clock.GetUtcNow();
+        var assets = await db.Assets.Where(a => uuids.Contains(a.Uuid) && a.DeletedAt == null).ToListAsync(ct);
+        foreach (var a in assets) a.PrintDate = now;
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task<IReadOnlyList<InsuranceReportRow>> InsuranceReportAsync(CancellationToken ct = default)
     {
         await using var db = dbFactory.Create();

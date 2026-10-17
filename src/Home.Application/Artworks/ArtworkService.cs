@@ -8,11 +8,12 @@ using Smoehring.Home.Domain.Common;
 namespace Smoehring.Home.Application.Artworks;
 
 public sealed record ArtworkListItem(Guid Uuid, string Title, ArtworkStage Stage, bool IsAdult, int VersionCount, IReadOnlyList<string> Artists, IReadOnlyList<string> Characters);
+public sealed record ArtworkVersionItem(int Id, string Label, bool IsPrimary, Guid? FileUuid, string? FileName);
 public sealed record ArtworkFilter(string? Search = null, ArtworkStage? Stage = null, bool IncludeAdult = false, int Page = 1, int PageSize = 25);
 public sealed record CreateArtworkCommand(string Title, bool IsAdult, IReadOnlyList<string> Characters, IReadOnlyList<(int ArtistId, ArtistRole Role)> Artists);
 public sealed record AddPaymentCommand(Guid ArtworkUuid, decimal Amount, int CurrencyId, DateOnly PaidOn, PaymentKind Kind, PaymentMethod Method, int? ArtistId, string? Reference);
 
-public class ArtworkService(IApplicationDbContextFactory dbFactory, TimeProvider clock)
+public class ArtworkService(IApplicationDbContextFactory dbFactory, IFileStore fileStore, TimeProvider clock)
 {
     public async Task<PagedResult<ArtworkListItem>> ListAsync(ArtworkFilter filter, CancellationToken ct = default)
     {
@@ -74,6 +75,44 @@ public class ArtworkService(IApplicationDbContextFactory dbFactory, TimeProvider
         var artwork = await Load(db, uuid, ct);
         artwork.AddVersion(label, isPrimary, assetFileId);
         await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Stores the uploaded image as a file of the artwork's asset and adds a version pointing at it.</summary>
+    public async Task AddVersionWithFileAsync(Guid uuid, string label, bool isPrimary, string fileName, string? contentType, Stream content, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(label)) throw new DomainException("A version needs a label.");
+        var name = Path.GetFileName(fileName?.Replace('\\', '/') ?? "");
+        if (string.IsNullOrWhiteSpace(name)) throw new DomainException("The file needs a name.");
+        await using var db = dbFactory.Create();
+        var artwork = await Load(db, uuid, ct);
+        var key = $"{uuid:N}x{Guid.NewGuid():N}{Path.GetExtension(name)}";
+        var stored = await fileStore.SaveAsync(key, content, ct);
+        try
+        {
+            var file = new AssetFile
+            {
+                AssetId = artwork.AssetId, OriginalFileName = name, StorageKey = stored.StorageKey, ContentType = contentType,
+                Size = stored.Size, Sha256 = stored.Sha256, Kind = FileKind.Digital
+            };
+            db.AssetFiles.Add(file);
+            await db.SaveChangesAsync(ct);
+            artwork.AddVersion(label, isPrimary, file.Id);
+            await db.SaveChangesAsync(ct);
+        }
+        catch { await fileStore.DeleteAsync(stored.StorageKey, CancellationToken.None); throw; }
+    }
+
+    public async Task<IReadOnlyList<ArtworkVersionItem>> VersionsAsync(Guid uuid, CancellationToken ct = default)
+    {
+        await using var db = dbFactory.Create();
+        var artwork = await db.Artworks.AsNoTracking().Include(a => a.Versions)
+            .FirstOrDefaultAsync(a => a.Uuid == uuid && a.DeletedAt == null, ct) ?? throw new NotFoundException("Artwork");
+        var fileIds = artwork.Versions.Where(v => v.AssetFileId != null).Select(v => v.AssetFileId!.Value).ToList();
+        var files = await db.AssetFiles.AsNoTracking().Where(f => fileIds.Contains(f.Id)).ToDictionaryAsync(f => f.Id, ct);
+        return artwork.Versions.OrderByDescending(v => v.IsPrimary).ThenBy(v => v.Id)
+            .Select(v => files.TryGetValue(v.AssetFileId ?? 0, out var f)
+                ? new ArtworkVersionItem(v.Id, v.Label, v.IsPrimary, f.Uuid, f.OriginalFileName)
+                : new ArtworkVersionItem(v.Id, v.Label, v.IsPrimary, null, null)).ToList();
     }
 
     public async Task AddPaymentAsync(AddPaymentCommand cmd, CancellationToken ct = default)
